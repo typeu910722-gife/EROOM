@@ -203,6 +203,16 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 14px}.duo .hero .n small{font-size:.45em;margin-left:2px}.duo .hero .n{font-size:64px}
 .bars.pctb .b i{background:linear-gradient(180deg,#e9c98d,#a8864a)}
 .rbar .pc{width:52px}.rbar .ct{font-size:12px;color:var(--mute);width:66px;text-align:right}
+.pie{display:flex;align-items:center;justify-content:center;gap:22px;margin:8px 0 6px;flex-wrap:wrap}
+.donut .pv{font-family:var(--serif);font-weight:600;font-size:52px;fill:var(--gold2)}.donut .pp{font-size:24px}
+.donut .pl{font-family:var(--tc);font-size:14px;letter-spacing:.3em;fill:var(--ink)}
+.donut .pvs{font-family:var(--serif);font-weight:600;font-size:17px;fill:var(--gold2)}
+.pside{display:flex;flex-direction:column;gap:10px}.pside div{display:flex;flex-direction:column}
+.pside b{font-family:var(--serif);font-weight:600;font-size:28px;line-height:1.05;color:var(--gold2)}.pside b.dim{color:var(--mute)}
+.pside span{font-size:12px;color:var(--mute);letter-spacing:.06em}
+.pies{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.pi{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center}
+.pi b{font-family:var(--serif);font-weight:600;font-size:20px;color:var(--ink);margin-top:2px}.pi span{font-size:11.5px;color:var(--mute)}
 .rbar b{font-family:var(--serif);font-size:20px;font-weight:600;width:30px;text-align:right}
 .rtable{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);font-size:14px}
 .rtable th,.rtable td{padding:7px 9px;text-align:right;border-top:1px solid var(--line2);white-space:nowrap}
@@ -824,6 +834,15 @@ function shiftMonth(n) {
   else { let h = S.rptHalf + n, y = S.rptYear; if (h > 2) { h = 1; y++; } if (h < 1) { h = 2; y--; } S.rptHalf = h; S.rptYear = y; S.rptType = h === 1 ? 'h1' : 'h2'; }
   renderRooms();
 }
+function donut(p, size, stroke, inner) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, p));
+  return `<svg class="donut" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="入住率 ${v}%">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--panel2)" stroke-width="${stroke}"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="url(#dg)" stroke-width="${stroke}" stroke-linecap="${v > 0 && v < 100 ? 'round' : 'butt'}"
+      stroke-dasharray="${c * v / 100} ${c}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
+    <defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e4cb93"/><stop offset="1" stop-color="#a8864a"/></linearGradient></defs>
+    ${inner || ''}</svg>`;
+}
 async function renderReport() {
   const T = S.rptType;
   $('#rptType').innerHTML = [['m', '月'], ['h1', '上半年'], ['h2', '下半年'], ['y', '年']].map(([k, t]) => `<button class="chip" data-rtype="${k}" aria-pressed="${T === k || (k !== 'm' && k !== 'y' && (T === 'h1' || T === 'h2') && k === T)}">${t}</button>`).join('');
@@ -866,19 +885,20 @@ async function renderReport() {
   const rooms = Object.keys(P.rooms).sort((a, b) => (S.rooms[S.prop] || []).indexOf(a) - (S.rooms[S.prop] || []).indexOf(b) || a.localeCompare(b));
   const rmax = Math.max(1, ...rooms.map((r) => P.rooms[r].checkin));
   $('#rptBody').innerHTML = `
-    <div class="duo">
-      <div class="hero"><div class="n">${rate}<small>%</small></div><div class="u">入住率</div></div>
-      <div class="hero"><div class="n">${t.checkin}</div><div class="u">${T === 'm' ? '當月' : T === 'y' ? '全年' : '半年'}總入住</div></div>
+    <div class="pie">
+      ${donut(rate, 200, 22, `<text x="100" y="104" text-anchor="middle" class="pv">${rate}<tspan class="pp">%</tspan></text><text x="100" y="134" text-anchor="middle" class="pl">入住率</text>`)}
+      <div class="pside">
+        <div><b>${t.occ}</b><span>有客人住（間晚）</span></div>
+        <div><b class="dim">${Math.max(0, nRooms * t.days - t.occ)}</b><span>空房（間晚）</span></div>
+        <div><b>${t.checkin}</b><span>${T === 'm' ? '當月' : T === 'y' ? '全年' : '半年'}總入住</span></div>
+      </div>
     </div>
-    <p class="muted small" style="text-align:center;margin:-6px 0 0">${nRooms} 間房 × ${t.days} 天有登記，有客人住的共 ${t.occ} 間晚</p>
-    <h2>${T === 'm' ? '每天入住率' : '每月入住率'}</h2>
-    <div class="bars pctb${T === 'm' ? '' : ' wide'}" role="img" aria-label="入住率">${rr.map((x, i) => `<div class="b" title="${T === 'm' ? +m + '/' + (i + 1) : months[i] + '月'}：${x == null ? '沒有登記' : '入住率 ' + x + '%'}">
-      ${T === 'm' ? '' : `<span class="v">${x == null ? '' : x + '%'}</span>`}<i style="height:${x || 0}%"></i>${(T === 'm' ? ((i + 1) % 5 === 0 || i === 0) : true) ? `<em>${T === 'm' ? i + 1 : months[i] + '月'}</em>` : ''}</div>`).join('')}</div>
+    <p class="muted small" style="text-align:center;margin:4px 0 0">${nRooms} 間房 × ${t.days} 天有登記</p>
     <h2>${T === 'm' ? '每天入住' : '每月入住'}</h2>
     <div class="bars${T === 'm' ? '' : ' wide'}" role="img" aria-label="入住的房間數">${dd.map((x, i) => `<div class="b" title="${T === 'm' ? +m + '/' + (i + 1) : months[i] + '月'}：入住 ${x} 間">
       ${T === 'm' ? '' : `<span class="v">${x || ''}</span>`}<i style="height:${x / max * 100}%"></i>${lab(i) ? `<em>${lab(i)}</em>` : ''}</div>`).join('')}</div>
     <h2>各房間入住率</h2>
-    <div class="list">${rooms.map((r) => { const x = P.rooms[r]; const pr = pct(x.occ, t.days, 1); return `<div class="rbar"><span class="no">${esc(r)}</span><span class="track"><i style="width:${pr}%"></i></span><b class="pc">${pr}%</b><span class="ct">入住 ${x.checkin} 次</span></div>`; }).join('')}</div>`;
+    <div class="pies">${rooms.map((r) => { const x = P.rooms[r]; const pr = pct(x.occ, t.days, 1); return `<div class="pi">${donut(pr, 76, 8, `<text x="38" y="43" text-anchor="middle" class="pvs">${pr}%</text>`)}<b>${esc(r)}</b><span>入住 ${x.checkin} 次</span></div>`; }).join('')}</div>`;
 }
 
 // ---------- LINE 設定（管理員）----------
