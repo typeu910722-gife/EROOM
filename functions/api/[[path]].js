@@ -154,6 +154,9 @@ export async function onRequest(ctx) {
       }
     }
 
+    // ---- LINE 官方帳號 ----
+    if (path.startsWith('line/')) return line(path.slice(5), m, request, env, url);
+
     // ---- 月報表 ----
     if (path === 'report' && m === 'GET') {
       const mo = url.searchParams.get('month') || '';
@@ -269,4 +272,138 @@ export async function onRequest(ctx) {
   } catch (e) {
     return bad('伺服器錯誤：' + (e && e.message ? e.message : e), 500);
   }
+}
+
+// ======================= LINE =======================
+// settings：line_secret、line_token、line_groups（{id:{name,at}}）、line_target、line_enabled、line_last、cron_key
+const PROP_NAME = { ersu: '貳宿', eryanglou: '貳洋樓' };
+const KIND_LABEL = { '退房': '退房', '退入': '退房→入住', '續住': '續住' };
+const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+
+async function getS(env, k) { const r = await env.DB.prepare('SELECT v FROM settings WHERE k=?').bind(k).first(); return r ? r.v : null; }
+async function setS(env, k, v) { return env.DB.prepare('INSERT INTO settings (k,v) VALUES (?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').bind(k, v).run(); }
+async function groups(env) { try { return JSON.parse((await getS(env, 'line_groups')) || '{}'); } catch { return {}; } }
+
+async function lineApi(token, path, init = {}) {
+  const r = await fetch('https://api.line.me/v2/bot/' + path, { ...init, headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json', ...(init.headers || {}) } });
+  const t = await r.text();
+  if (!r.ok) throw new Error('LINE ' + r.status + '：' + t.slice(0, 200));
+  return t ? JSON.parse(t) : {};
+}
+
+async function verifySig(secret, body, sig) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+  return btoa(String.fromCharCode(...new Uint8Array(mac))) === sig;
+}
+
+function floorOf(r) { return r.length >= 3 ? r.slice(0, -2) : r.slice(0, 1); }
+
+async function dailyText(env, date) {
+  const d = new Date(date + 'T00:00:00Z');
+  const lines = [`🧹 今日要掃｜${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK[d.getUTCDay()]}）`];
+  for (const p of PROPS) {
+    const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(p).first();
+    const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
+    const { results } = await env.DB.prepare('SELECT room,data FROM records WHERE prop=? AND date=?').bind(p, date).all();
+    const R = {}; for (const r of results) R[r.room] = JSON.parse(r.data);
+    const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && KIND_LABEL[R[r].kind]);
+    const prio = list.filter((r) => R[r].kind === '退入').length;
+    lines.push('', `【${PROP_NAME[p]}】${list.length ? list.length + ' 間' + (prio ? `（優先 ${prio}）` : '') : '今天不用掃'}`);
+    const fl = {};
+    for (const r of list) (fl[floorOf(r)] ||= []).push(r);
+    const order = { '退入': 0, '退房': 1, '續住': 2 };
+    for (const f of Object.keys(fl)) {
+      const items = fl[f].sort((a, b) => order[R[a].kind] - order[R[b].kind] || rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
+        const x = R[r];
+        const extra = [x.lateOut && '延退' + x.lateOut, x.earlyIn && '早入' + x.earlyIn, x.note].filter(Boolean).join(' ');
+        return `${r} ${KIND_LABEL[x.kind]}${x.kind === '退入' ? '⭐' : ''}${extra ? `（${extra}）` : ''}`;
+      });
+      lines.push(`${f}F　${items.join('、')}`);
+    }
+  }
+  lines.push('', '⭐ 優先：當天有客人入住', '出入房間請先敲門', 'https://eroom.yzprojecttw.com');
+  return lines.join('\n').slice(0, 4900);
+}
+
+async function pushDaily(env, { force = false } = {}) {
+  const token = await getS(env, 'line_token');
+  const target = await getS(env, 'line_target');
+  if (!token || !target) throw new Error('還沒設定 LINE 金鑰或推播群組');
+  const date = twDate(Date.now());
+  if (!force) {
+    if ((await getS(env, 'line_enabled')) !== '1') return { skipped: '每日推播已關閉' };
+    if ((await getS(env, 'line_last')) === date) return { skipped: '今天已經傳過' };
+  }
+  const text = await dailyText(env, date);
+  await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: target, messages: [{ type: 'text', text }] }) });
+  if (!force) await setS(env, 'line_last', date);
+  return { ok: true, date };
+}
+
+async function line(sub, m, request, env, url) {
+  // LINE 平台 webhook：記錄機器人被加入的群組
+  if (sub === 'webhook' && m === 'POST') {
+    const raw = await request.text();
+    const secret = await getS(env, 'line_secret');
+    if (!secret || !(await verifySig(secret, raw, request.headers.get('x-line-signature') || ''))) return bad('簽章錯誤', 401);
+    const token = await getS(env, 'line_token');
+    const body = JSON.parse(raw || '{}');
+    const gs = await groups(env);
+    let changed = false;
+    for (const ev of body.events || []) {
+      const gid = ev.source && ev.source.groupId;
+      if (!gid) continue;
+      if (ev.type === 'leave') { delete gs[gid]; changed = true; continue; }
+      if (ev.type === 'join' || (ev.type === 'message' && ev.message?.type === 'text' && /綁定|房務/.test(ev.message.text || ''))) {
+        let name = gs[gid]?.name || '';
+        if (token) { try { name = (await lineApi(token, 'group/' + gid + '/summary')).groupName || name; } catch {} }
+        gs[gid] = { name, at: Date.now() }; changed = true;
+        if (token && ev.replyToken) {
+          const msg = ev.type === 'join' ? '已連上 E·ROOM 房務。管理員到網站「報表 → LINE 設定」選這個群組，每天 10:50 就會自動傳今日要掃的房間。' :
+            (/房務/.test(ev.message.text) ? await dailyText(env, twDate(Date.now())) : '已綁定這個群組，請到網站選它當推播群組。');
+          try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: msg }] }) }); } catch {}
+        }
+      }
+    }
+    if (changed) await setS(env, 'line_groups', JSON.stringify(gs));
+    return json({ ok: true });
+  }
+
+  // 排程（Cloudflare Worker cron 每天 10:50 呼叫）
+  if (sub === 'daily' && m === 'POST') {
+    const key = await getS(env, 'cron_key');
+    if (!key || request.headers.get('x-cron-key') !== key) return bad('金鑰錯誤', 401);
+    try { return json(await pushDaily(env)); } catch (e) { return bad(e.message, 500); }
+  }
+
+  // 以下需要管理員
+  if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
+
+  if (sub === 'config' && m === 'GET') {
+    return json({
+      hasSecret: !!(await getS(env, 'line_secret')), hasToken: !!(await getS(env, 'line_token')),
+      groups: await groups(env), target: (await getS(env, 'line_target')) || '',
+      enabled: (await getS(env, 'line_enabled')) === '1', last: (await getS(env, 'line_last')) || '',
+      webhook: url.origin + '/api/line/webhook',
+    });
+  }
+  if (sub === 'config' && (m === 'PUT' || m === 'POST')) {
+    const b = await body(request);
+    if (!b) return bad('參數錯誤');
+    if (typeof b.secret === 'string' && b.secret.trim()) await setS(env, 'line_secret', b.secret.trim());
+    if (typeof b.token === 'string' && b.token.trim()) {
+      const t = b.token.trim();
+      try { await lineApi(t, 'info'); } catch (e) { return bad('Channel access token 無效：' + e.message); }
+      await setS(env, 'line_token', t);
+    }
+    if (typeof b.target === 'string') await setS(env, 'line_target', b.target);
+    if (typeof b.enabled === 'boolean') await setS(env, 'line_enabled', b.enabled ? '1' : '0');
+    return json({ ok: true });
+  }
+  if (sub === 'preview' && m === 'GET') return json({ text: await dailyText(env, twDate(Date.now())) });
+  if (sub === 'test' && m === 'POST') {
+    try { return json(await pushDaily(env, { force: true })); } catch (e) { return bad(e.message); }
+  }
+  return bad('找不到', 404);
 }
