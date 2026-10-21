@@ -25,6 +25,9 @@
 ## 調整（2026-10-21）
 - [x] 拿掉「掃好了」：網站以查看為主，員工照舊在 LINE 回報房況；房號只剩要掃／不用掃，檢核改成步驟清單；報表拿掉完成率與完成時間
 
+## 上線（2026-10-21 11:25）
+- [x] eroom.yzprojecttw.com 從舊專案 eroom 移到 eroom-app，DNS CNAME 改指 eroom-app.pages.dev；舊專案保留（eroom-7om.pages.dev）當備援
+- 之後「推上線」＝ push 到 GitHub main，Cloudflare 自動部署
+
 ## 待辦
-- 推上線：eroom.yzprojecttw.com 轉到 eroom-app
 - 每天早上把要掃的房間推送到 LINE
