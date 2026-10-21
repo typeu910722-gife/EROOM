@@ -317,12 +317,12 @@ async function dailyText(env, date, props = PROPS) {
       const items = fl[f].sort((a, b) => order[R[a].kind] - order[R[b].kind] || rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
         const x = R[r];
         const extra = [x.lateOut && '延退' + x.lateOut, x.earlyIn && '早入' + x.earlyIn, x.note].filter(Boolean).join(' ');
-        return `${r} ${KIND_LABEL[x.kind]}${x.kind === '退入' ? '⭐' : ''}${extra ? `（${extra}）` : ''}`;
+        return `${r}${x.kind === '退入' ? '⭐' : ''}${extra ? `（${extra}）` : ''}`;
       });
       lines.push(`${f}F　${items.join('、')}`);
     }
   }
-  lines.push('', '⭐ 優先：當天有客人入住', '出入房間請先敲門', 'https://eroom.yzprojecttw.com');
+  lines.push('', '⭐ 優先：當天有客人入住', '出入房間請先敲門');
   return lines.join('\n').slice(0, 4900);
 }
 
@@ -367,21 +367,17 @@ async function line(sub, m, request, env, url) {
       if (!gid) continue;
       if (ev.type === 'leave') { delete gs[gid]; changed = true; for (const p of PROPS) if ((await getS(env, 'line_target_' + p)) === gid) await setS(env, 'line_target_' + p, ''); continue; }
       const text = ev.type === 'message' && ev.message?.type === 'text' ? (ev.message.text || '').trim() : '';
-      if (ev.type !== 'join' && !/綁定|房務/.test(text)) continue;
+      if (ev.type !== 'join' && !/綁定/.test(text)) continue;
       let name = gs[gid]?.name || '';
       if (token) { try { name = (await lineApi(token, 'group/' + gid + '/summary')).groupName || name; } catch {} }
       gs[gid] = { name, at: Date.now() }; changed = true;
-      const tg = await targets(env);
-      const boundTo = PROPS.filter((p) => tg[p] === gid);
       let msg;
       if (ev.type === 'join') {
         msg = '已連上 E·ROOM 房務。\n這個群組要收哪一館，請傳「綁定貳宿」或「綁定貳洋樓」。綁定後每天 10:50 會自動傳那一館今日要掃的房間。';
       } else if (/綁定/.test(text)) {
         const p = /洋樓/.test(text) ? 'eryanglou' : /貳宿|二宿/.test(text) ? 'ersu' : null;
         if (!p) msg = '請傳「綁定貳宿」或「綁定貳洋樓」。';
-        else { await setS(env, 'line_target_' + p, gid); msg = `已綁定【${PROP_NAME[p]}】。每天 10:50 會傳${PROP_NAME[p]}今日要掃的房間，群組裡傳「房務」也可以隨時查。`; }
-      } else {
-        msg = await dailyText(env, twDate(Date.now()), boundTo.length ? boundTo : PROPS);
+        else { await setS(env, 'line_target_' + p, gid); msg = `已綁定【${PROP_NAME[p]}】。每天 10:50 會傳${PROP_NAME[p]}今日要掃的房間。`; }
       }
       if (token && ev.replyToken) {
         try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: msg }] }) }); } catch {}

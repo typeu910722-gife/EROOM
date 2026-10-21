@@ -867,7 +867,7 @@ async function renderLine() {
       <div class="btnrow"><button class="btn wide" id="lnSave2">儲存推播設定</button></div>
     </div>
     ${Object.keys(PROPS).map((p) => `<h2>${PROPS[p]}訊息預覽</h2><div class="doc" style="white-space:pre-wrap;padding-top:14px;font-size:14px">${esc(prev[p])}</div>`).join('')}
-    <p class="muted small">群組裡傳「房務」，官方帳號會立刻回那一館今天的要掃清單。</p>`;
+    `;
   $('#lnSave').onclick = async () => {
     try { await api('line/config', { method: 'PUT', body: JSON.stringify({ secret: $('#lnSecret').value, token: $('#lnToken').value }) }); toast('連線已儲存'); renderLine(); }
     catch (e) { toast(e.message, false, true); }
