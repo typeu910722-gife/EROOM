@@ -592,7 +592,7 @@ function renderToday(flashRooms = []) {
   const nIss = (S.openIssues || []).length;
   $('#counts').innerHTML = list.length
     ? `<div class="n">${list.length}</div><div class="u">間要掃</div>
-       <div class="sub">${prio ? `<span class="p"><b>${prio}</b>間優先</span>` : ''}<span><b>${inn}</b>間今晚入住</span>${nIss ? `<a href="#" data-goissue>⚠️ ${nIss} 件回報待處理</a>` : ''}</div>`
+       <div class="sub">${prio ? `<span class="p"><b>${prio}</b>間優先</span>` : ''}${inn ? `<span><b>${inn}</b>間今晚入住</span>` : ''}${nIss ? `<a href="#" data-goissue>⚠️ ${nIss} 件回報待處理</a>` : ''}</div>`
     : `<div class="zero">今天沒有要掃的房間</div>${nIss ? `<div class="sub"><a href="#" data-goissue>⚠️ ${nIss} 件回報待處理</a></div>` : ''}`;
   const byFl = {};
   for (const r of list) (byFl[floorOf(r)] ||= []).push(r);
