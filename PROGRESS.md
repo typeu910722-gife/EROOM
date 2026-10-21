@@ -15,7 +15,8 @@
 - [x] 缺備品依房型勾選數量，備品頁頂端自動彙整補貨清單；處理好了就扣掉
 - [x] 房號門牌顯示 ⚠️、今日頁顯示待處理數、底部分頁紅點
 - [x] /api/export（需 settings.sync_key）＋ gas/Code.gs：每 15 分鐘同步到「旅宿不貳家」試算表（房務紀錄、回報、補貨清單）
-- [ ] 試算表裝 Apps Script、設定 SYNC_KEY、使用者授權執行 setup()
+- [x] 試算表已裝 Apps Script（金鑰放在試算表那份程式裡，repo 版不含金鑰）
+- [ ] 使用者在 Apps Script 按「執行 setup」並授權
 
 ## 待辦
 - 推上線：eroom.yzprojecttw.com 轉到 eroom-app
