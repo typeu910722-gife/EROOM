@@ -154,6 +154,33 @@ export async function onRequest(ctx) {
       }
     }
 
+    // ---- 純文字查詢（給 Grok 等讀取用，一次拿多天，不用操作網頁）----
+    if (path === 'text' && m === 'GET') {
+      const from = url.searchParams.get('from') || url.searchParams.get('d') || twDate(Date.now());
+      const to = url.searchParams.get('to') || from;
+      if (!DATE_RE.test(from) || !DATE_RE.test(to) || to < from) return bad('參數錯誤，例如 /api/text?p=ersu&from=2026-10-01&to=2026-10-20');
+      if ((Date.parse(to) - Date.parse(from)) / 864e5 > 92) return bad('一次最多查 93 天');
+      const ps = PROPS.includes(p) ? [p] : PROPS;
+      const LBL = { '退房': '退房', '退入': '退房→入住', '續住': '續住', '入住': '入住' };
+      const { results } = await env.DB.prepare('SELECT prop,date,room,data FROM records WHERE date BETWEEN ? AND ? ORDER BY date').bind(from, to).all();
+      const cfgs = {};
+      for (const pp of ps) { const c = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first(); cfgs[pp] = c ? JSON.parse(c.data).rooms || [] : []; }
+      const map = {};
+      for (const r of results) { if (!ps.includes(r.prop)) continue; const x = JSON.parse(r.data); if (!x.kind) continue; ((map[r.date] ||= {})[r.prop] ||= []).push([r.room, x]); }
+      const out = [`E·ROOM 房況 ${from} ～ ${to}（${ps.map((x) => ({ ersu: '貳宿', eryanglou: '貳洋樓' })[x]).join('、')}）`, ''];
+      for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z'); t += 864e5) {
+        const d = new Date(t).toISOString().slice(0, 10);
+        for (const pp of ps) {
+          const rows = (map[d]?.[pp] || []).sort((a, b) => cfgs[pp].indexOf(a[0]) - cfgs[pp].indexOf(b[0]));
+          const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
+          if (!rows.length) { out.push(`${d} ${name}：沒有登記`); continue; }
+          const need = rows.filter(([, x]) => x.status === 'todo' || x.status === 'done').length;
+          out.push(`${d} ${name}：要掃 ${need} 間｜` + rows.map(([r, x]) => `${r} ${LBL[x.kind] || x.kind}${x.kind === '續住' ? (x.status ? '要掃' : '不用掃') : ''}${x.note ? `（${x.note}）` : ''}`).join('、'));
+        }
+      }
+      return new Response(out.join('\n'), { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
+    }
+
     // ---- LINE 官方帳號 ----
     if (path.startsWith('line/')) return line(path.slice(5), m, request, env, url);
 

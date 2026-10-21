@@ -15,9 +15,12 @@
 | GET | `/api/records?p=&d=YYYY-MM-DD` | 某天各房狀態 |
 | POST | `/api/records` | `{p,d,room,data}` 或 `{p,d,items:[{room,data}]}`，合併更新 |
 | GET | `/api/summary?from=&to=` | 區間統計 |
+| GET | `/api/text?p=ersu\|eryanglou&from=&to=` | 純文字房況（給 Grok 讀，一次多天，最多 93 天；不帶 p 就兩館） |
 | GET/PUT | `/api/docs` | 手冊、檢核、備品、房間資料（PUT 需管理員） |
 
 管理員：header `x-admin: <密碼>`，雜湊存在 D1 `settings.admin_hash`，不放在程式碼裡。
 
 ## 資料格式
 `records.data`：`kind`（退房／退入／續住／入住）、`status`（todo 要掃／done 掃好了／空字串 不用掃）、`note`、`lateOut`、`earlyIn`、`checks`、`doneAt`、`updatedAt`
+
+網頁可直接開指定館別與日期：`/?p=ersu&d=2026-10-15`

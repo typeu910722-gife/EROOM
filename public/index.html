@@ -399,6 +399,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const key = () => S.prop + '|' + S.date;
 const recs = () => (S.recs[key()] ||= {});
+// 網址可直接指定：?p=ersu&d=2026-10-15
 
 // ---------- API ----------
 async function api(path, opts = {}) {
@@ -510,6 +511,13 @@ function renderToday(flashRooms = []) {
   $('#goToday').hidden = S.date === todayStr();
 
   const rooms = S.rooms[S.prop] || [];
+  if (!S.recs[key()] || !rooms.length) {
+    $('#counts').innerHTML = '<div class="zero" data-state="loading">讀取中⋯</div>';
+    $('#todoList').innerHTML = ''; $('#floors').innerHTML = '';
+    document.body.dataset.ready = '0';
+    return;
+  }
+  document.body.dataset.ready = '1';
   const R = recs();
   let inn = 0;
   for (const r of rooms) { const x = R[r]; if (x && (x.kind === '入住' || x.kind === '退入')) inn++; }
@@ -973,6 +981,7 @@ async function selectProp(p) {
   refresh();
 }
 async function refresh() {
+  try { history.replaceState(null, '', `?p=${S.prop}&d=${S.date}`); } catch {}
   renderAll();
   try { await loadRecs(); $('#offline').classList.remove('on'); } catch { $('#offline').classList.add('on'); }
   renderAll();
@@ -988,6 +997,9 @@ setInterval(() => { if (!document.hidden && S.tab === 'today' && !S.pending.leng
 
 // ---------- 啟動 ----------
 (async function init() {
+  const q = new URLSearchParams(location.search);
+  if (PROPS[q.get('p')]) S.prop = q.get('p');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(q.get('d') || '')) S.date = q.get('d');
   renderLock();
   document.querySelectorAll('[data-prop]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.prop === S.prop));
   renderAll();
