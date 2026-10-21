@@ -312,9 +312,8 @@ async function dailyText(env, date, props = PROPS) {
     lines.push(`【${PROP_NAME[p]}】${list.length ? list.length + ' 間' + (prioRooms.length ? `（優先 ${prioRooms.length}）` : '') : '今天不用掃'}`);
     const fl = {};
     for (const r of list) (fl[floorOf(r)] ||= []).push(r);
-    const order = { '退入': 0, '退房': 1, '續住': 2 };
     for (const f of Object.keys(fl)) {
-      lines.push(fl[f].sort((a, b) => order[R[a].kind] - order[R[b].kind] || rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
+      lines.push(fl[f].sort((a, b) => rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
         const x = R[r];
         const extra = [x.lateOut && '延退' + x.lateOut, x.earlyIn && '早入' + x.earlyIn, x.note].filter(Boolean).join(' ');
         return r + (extra ? `（${extra}）` : '');
