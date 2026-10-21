@@ -30,7 +30,7 @@
 - 之後「推上線」＝ push 到 GitHub main，Cloudflare 自動部署
 
 ## LINE 推播（2026-10-21）
-- [x] /api/line/webhook（驗簽，記錄加入的群組；群組傳「綁定」記錄、傳「房務」回今日清單）
+- [x] /api/line/webhook（驗簽；各館各自綁群組：群組傳「綁定貳宿」「綁定貳洋樓」，settings line_target_<館>；傳「房務」回該館清單）
 - [x] /api/line/config、preview、test（管理員）；/api/line/daily（x-cron-key）
 - [x] 報表 → LINE 設定（管理員才看得到）
 - [x] cron/worker.js：Cloudflare Worker eroom-cron，每天 02:50 UTC 呼叫 daily

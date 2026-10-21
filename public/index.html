@@ -842,9 +842,10 @@ async function renderReport() {
 async function renderLine() {
   const w = $('#lineWrap');
   w.innerHTML = '<p class="empty">讀取中⋯</p>';
-  let c, prev = '';
-  try { c = await api('line/config'); prev = (await api('line/preview')).text; } catch (e) { w.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
+  let c, prev;
+  try { c = await api('line/config'); prev = (await api('line/preview')).texts; } catch (e) { w.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
   const gids = Object.keys(c.groups);
+  const gname = (g) => (c.groups[g] && c.groups[g].name) || '（未取得群組名稱）';
   w.innerHTML = `
     <h2>連線</h2>
     <div class="doc" style="padding-top:14px">
@@ -856,29 +857,30 @@ async function renderLine() {
       <input type="text" readonly value="${esc(c.webhook)}" onclick="this.select()">
       <div class="btnrow"><button class="btn wide" id="lnSave">儲存連線</button></div>
     </div>
-    <h2>推播群組</h2>
+    <h2>各館推播群組</h2>
     <div class="doc" style="padding-top:12px">
-      ${gids.length ? gids.map((g) => `<label class="sitem" style="cursor:pointer"><input type="radio" name="lnG" value="${esc(g)}" ${c.target === g ? 'checked' : ''}> ${esc(c.groups[g].name || '（未取得群組名稱）')}</label>`).join('')
-        : '<p class="muted small">還沒有群組。把官方帳號加進 LINE 群組後，在群組裡傳「綁定」，重新整理這頁就會出現。</p>'}
-      <label class="sitem" style="margin-top:6px"><input type="checkbox" id="lnOn" ${c.enabled ? 'checked' : ''}> 每天 10:50 自動傳送</label>
-      <p class="muted small">上次自動傳送：${esc(c.last || '還沒有')}</p>
-      <div class="btnrow"><button class="btn ghost" id="lnTest" ${c.hasToken && c.target ? '' : 'disabled'}>現在傳一則測試</button><button class="btn wide" id="lnSave2">儲存推播設定</button></div>
+      <p class="muted small" style="margin-top:0">在群組裡傳「綁定貳宿」或「綁定貳洋樓」就會自動綁好，也可以在這裡選。每個群組只會收到自己那一館。</p>
+      ${Object.keys(PROPS).map((p) => `<div class="lbl">${PROPS[p]}</div>
+        <select data-lnp="${p}"><option value="">不傳送</option>${gids.map((g) => `<option value="${esc(g)}" ${c.targets[p] === g ? 'selected' : ''}>${esc(gname(g))}</option>`).join('')}</select>
+        <p class="muted small" style="margin:4px 0 0">上次自動傳送：${esc(c.last[p] || '還沒有')}　<a href="#" data-lntest="${p}" style="color:var(--gold)">傳一則測試</a></p>`).join('')}
+      <label class="sitem" style="margin-top:12px"><input type="checkbox" id="lnOn" ${c.enabled ? 'checked' : ''}> 每天 10:50 自動傳送</label>
+      <div class="btnrow"><button class="btn wide" id="lnSave2">儲存推播設定</button></div>
     </div>
-    <h2>訊息預覽（今天）</h2>
-    <div class="doc" style="white-space:pre-wrap;padding-top:14px;font-size:14px">${esc(prev)}</div>
-    <p class="muted small">群組裡傳「房務」，官方帳號也會立刻回今天的要掃清單。</p>`;
+    ${Object.keys(PROPS).map((p) => `<h2>${PROPS[p]}訊息預覽</h2><div class="doc" style="white-space:pre-wrap;padding-top:14px;font-size:14px">${esc(prev[p])}</div>`).join('')}
+    <p class="muted small">群組裡傳「房務」，官方帳號會立刻回那一館今天的要掃清單。</p>`;
   $('#lnSave').onclick = async () => {
     try { await api('line/config', { method: 'PUT', body: JSON.stringify({ secret: $('#lnSecret').value, token: $('#lnToken').value }) }); toast('連線已儲存'); renderLine(); }
     catch (e) { toast(e.message, false, true); }
   };
   $('#lnSave2').onclick = async () => {
-    const g = document.querySelector('input[name=lnG]:checked');
-    try { await api('line/config', { method: 'PUT', body: JSON.stringify({ target: g ? g.value : '', enabled: $('#lnOn').checked }) }); toast('推播設定已儲存'); renderLine(); }
+    const targets = {}; document.querySelectorAll('[data-lnp]').forEach((x) => (targets[x.dataset.lnp] = x.value));
+    try { await api('line/config', { method: 'PUT', body: JSON.stringify({ targets, enabled: $('#lnOn').checked }) }); toast('推播設定已儲存'); renderLine(); }
     catch (e) { toast(e.message, false, true); }
   };
-  $('#lnTest').onclick = async () => {
-    try { await api('line/test', { method: 'POST' }); toast('已傳到群組'); } catch (e) { toast(e.message, false, true); }
-  };
+  w.querySelectorAll('[data-lntest]').forEach((a) => (a.onclick = async (e) => {
+    e.preventDefault();
+    try { await api('line/test', { method: 'POST', body: JSON.stringify({ p: a.dataset.lntest }) }); toast('已傳到' + PROPS[a.dataset.lntest] + '群組'); } catch (err) { toast(err.message, false, true); }
+  }));
 }
 
 // ---------- 管理員 ----------

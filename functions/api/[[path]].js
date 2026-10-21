@@ -299,10 +299,10 @@ async function verifySig(secret, body, sig) {
 
 function floorOf(r) { return r.length >= 3 ? r.slice(0, -2) : r.slice(0, 1); }
 
-async function dailyText(env, date) {
+async function dailyText(env, date, props = PROPS) {
   const d = new Date(date + 'T00:00:00Z');
   const lines = [`🧹 今日要掃｜${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK[d.getUTCDay()]}）`];
-  for (const p of PROPS) {
+  for (const p of props) {
     const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(p).first();
     const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
     const { results } = await env.DB.prepare('SELECT room,data FROM records WHERE prop=? AND date=?').bind(p, date).all();
@@ -326,19 +326,30 @@ async function dailyText(env, date) {
   return lines.join('\n').slice(0, 4900);
 }
 
-async function pushDaily(env, { force = false } = {}) {
+async function targets(env) {
+  const t = {};
+  for (const p of PROPS) t[p] = (await getS(env, 'line_target_' + p)) || '';
+  return t;
+}
+
+async function pushDaily(env, { force = false, only = null } = {}) {
   const token = await getS(env, 'line_token');
-  const target = await getS(env, 'line_target');
-  if (!token || !target) throw new Error('還沒設定 LINE 金鑰或推播群組');
+  if (!token) throw new Error('還沒設定 LINE 金鑰');
+  const tg = await targets(env);
   const date = twDate(Date.now());
-  if (!force) {
-    if ((await getS(env, 'line_enabled')) !== '1') return { skipped: '每日推播已關閉' };
-    if ((await getS(env, 'line_last')) === date) return { skipped: '今天已經傳過' };
+  if (!force && (await getS(env, 'line_enabled')) !== '1') return { skipped: '每日推播已關閉' };
+  const sent = [], skipped = [];
+  for (const p of PROPS) {
+    if (only && p !== only) continue;
+    if (!tg[p]) { skipped.push(PROP_NAME[p] + '：沒有綁定群組'); continue; }
+    if (!force && (await getS(env, 'line_last_' + p)) === date) { skipped.push(PROP_NAME[p] + '：今天已經傳過'); continue; }
+    const text = await dailyText(env, date, [p]);
+    await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: tg[p], messages: [{ type: 'text', text }] }) });
+    if (!force) await setS(env, 'line_last_' + p, date);
+    sent.push(PROP_NAME[p]);
   }
-  const text = await dailyText(env, date);
-  await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: target, messages: [{ type: 'text', text }] }) });
-  if (!force) await setS(env, 'line_last', date);
-  return { ok: true, date };
+  if (!sent.length && force) throw new Error(skipped.join('；') || '沒有可傳送的群組');
+  return { ok: true, date, sent, skipped };
 }
 
 async function line(sub, m, request, env, url) {
@@ -354,16 +365,26 @@ async function line(sub, m, request, env, url) {
     for (const ev of body.events || []) {
       const gid = ev.source && ev.source.groupId;
       if (!gid) continue;
-      if (ev.type === 'leave') { delete gs[gid]; changed = true; continue; }
-      if (ev.type === 'join' || (ev.type === 'message' && ev.message?.type === 'text' && /綁定|房務/.test(ev.message.text || ''))) {
-        let name = gs[gid]?.name || '';
-        if (token) { try { name = (await lineApi(token, 'group/' + gid + '/summary')).groupName || name; } catch {} }
-        gs[gid] = { name, at: Date.now() }; changed = true;
-        if (token && ev.replyToken) {
-          const msg = ev.type === 'join' ? '已連上 E·ROOM 房務。管理員到網站「報表 → LINE 設定」選這個群組，每天 10:50 就會自動傳今日要掃的房間。' :
-            (/房務/.test(ev.message.text) ? await dailyText(env, twDate(Date.now())) : '已綁定這個群組，請到網站選它當推播群組。');
-          try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: msg }] }) }); } catch {}
-        }
+      if (ev.type === 'leave') { delete gs[gid]; changed = true; for (const p of PROPS) if ((await getS(env, 'line_target_' + p)) === gid) await setS(env, 'line_target_' + p, ''); continue; }
+      const text = ev.type === 'message' && ev.message?.type === 'text' ? (ev.message.text || '').trim() : '';
+      if (ev.type !== 'join' && !/綁定|房務/.test(text)) continue;
+      let name = gs[gid]?.name || '';
+      if (token) { try { name = (await lineApi(token, 'group/' + gid + '/summary')).groupName || name; } catch {} }
+      gs[gid] = { name, at: Date.now() }; changed = true;
+      const tg = await targets(env);
+      const boundTo = PROPS.filter((p) => tg[p] === gid);
+      let msg;
+      if (ev.type === 'join') {
+        msg = '已連上 E·ROOM 房務。\n這個群組要收哪一館，請傳「綁定貳宿」或「綁定貳洋樓」。綁定後每天 10:50 會自動傳那一館今日要掃的房間。';
+      } else if (/綁定/.test(text)) {
+        const p = /洋樓/.test(text) ? 'eryanglou' : /貳宿|二宿/.test(text) ? 'ersu' : null;
+        if (!p) msg = '請傳「綁定貳宿」或「綁定貳洋樓」。';
+        else { await setS(env, 'line_target_' + p, gid); msg = `已綁定【${PROP_NAME[p]}】。每天 10:50 會傳${PROP_NAME[p]}今日要掃的房間，群組裡傳「房務」也可以隨時查。`; }
+      } else {
+        msg = await dailyText(env, twDate(Date.now()), boundTo.length ? boundTo : PROPS);
+      }
+      if (token && ev.replyToken) {
+        try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: msg }] }) }); } catch {}
       }
     }
     if (changed) await setS(env, 'line_groups', JSON.stringify(gs));
@@ -383,8 +404,8 @@ async function line(sub, m, request, env, url) {
   if (sub === 'config' && m === 'GET') {
     return json({
       hasSecret: !!(await getS(env, 'line_secret')), hasToken: !!(await getS(env, 'line_token')),
-      groups: await groups(env), target: (await getS(env, 'line_target')) || '',
-      enabled: (await getS(env, 'line_enabled')) === '1', last: (await getS(env, 'line_last')) || '',
+      groups: await groups(env), targets: await targets(env),
+      enabled: (await getS(env, 'line_enabled')) === '1', last: { ersu: (await getS(env, 'line_last_ersu')) || '', eryanglou: (await getS(env, 'line_last_eryanglou')) || '' },
       webhook: url.origin + '/api/line/webhook',
     });
   }
@@ -397,13 +418,14 @@ async function line(sub, m, request, env, url) {
       try { await lineApi(t, 'info'); } catch (e) { return bad('Channel access token 無效：' + e.message); }
       await setS(env, 'line_token', t);
     }
-    if (typeof b.target === 'string') await setS(env, 'line_target', b.target);
+    if (b.targets && typeof b.targets === 'object') for (const p of PROPS) if (typeof b.targets[p] === 'string') await setS(env, 'line_target_' + p, b.targets[p]);
     if (typeof b.enabled === 'boolean') await setS(env, 'line_enabled', b.enabled ? '1' : '0');
     return json({ ok: true });
   }
-  if (sub === 'preview' && m === 'GET') return json({ text: await dailyText(env, twDate(Date.now())) });
+  if (sub === 'preview' && m === 'GET') { const d = twDate(Date.now()); return json({ texts: { ersu: await dailyText(env, d, ['ersu']), eryanglou: await dailyText(env, d, ['eryanglou']) } }); }
   if (sub === 'test' && m === 'POST') {
-    try { return json(await pushDaily(env, { force: true })); } catch (e) { return bad(e.message); }
+    const b = await body(request);
+    try { return json(await pushDaily(env, { force: true, only: PROPS.includes(b?.p) ? b.p : null })); } catch (e) { return bad(e.message); }
   }
   return bad('找不到', 404);
 }
