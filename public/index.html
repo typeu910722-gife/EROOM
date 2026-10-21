@@ -126,6 +126,7 @@ h2{font-size:18px;margin:22px 0 10px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 input[type=time],input[type=text],input[type=password],textarea,select{width:100%;border:1.5px solid var(--line);border-radius:8px;background:#fff;padding:9px 11px}
 textarea{min-height:90px;resize:vertical;line-height:1.6}
+.steps{margin:0;padding-left:22px}.steps li{padding:3px 0}
 .checks label{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px dashed var(--line)}
 .checks label:first-child{border-top:0}
 .checks input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--done);flex:none}
@@ -311,13 +312,12 @@ const KINDS = {
   '續住': { label: '續住', color: 'var(--todo)', status: 'todo' },
   '入住': { label: '入住', color: 'var(--in)', status: '' },
 };
-const STATUS = { todo: '要掃', done: '掃好了', '': '不用掃' };
+const STATUS = { todo: '要掃', done: '要掃', '': '不用掃' };
 const TOOLS = [
   { id: '退房', kind: '退房', label: '退房', color: 'var(--todo)' },
   { id: '退入', kind: '退入', label: '退房→入住', color: 'var(--prio)' },
   { id: '續住', kind: '續住', label: '續住', color: 'var(--todo)' },
   { id: '入住', kind: '入住', label: '入住', color: 'var(--in)' },
-  { id: 'done', status: 'done', label: '掃好了', color: 'var(--done)' },
   { id: 'clear', clear: true, label: '清空', color: 'var(--none)' },
 ];
 const WK = ['日', '一', '二', '三', '四', '五', '六'];
@@ -327,7 +327,7 @@ const DEFAULTS = {
   handbook: { title: '員工守則', text:
 `### 上班
 - 到班先看「今日要掃」，退房→入住（紅色）的房間優先
-- 開始掃之前，在房號上確認狀態；掃完立刻按「掃好了」
+- 開始掃之前，先在網站上確認每間房的狀況；掃完在 LINE 群組回報房況
 - 手機保持有電，有狀況先在房號備註寫下，再 LINE 通知管理者
 
 ### 進出房間
@@ -370,7 +370,7 @@ const DEFAULTS = {
 7. 鋪床、擺放毛巾
 8. 依備品清單補齊
 9. 吸地、拖地
-10. 關窗、關燈、冷氣關閉，按「掃好了」
+10. 關窗、關燈、冷氣關閉，在 LINE 回報這間掃好了
 
 ### 退房→入住（優先）
 - 下一組客人當天入住，先掃這幾間，入住時間前要完成` },
@@ -567,7 +567,6 @@ function renderToday(flashRooms = []) {
   }
   $('#counts').innerHTML =
     `<span><i class="dot" style="background:var(--todo)"></i><b>${todo}</b>要掃${prio ? `（優先 ${prio}）` : ''}</span>` +
-    `<span><i class="dot" style="background:var(--done)"></i><b>${done}</b>掃好了</span>` +
     `<span><i class="dot" style="background:var(--in)"></i><b>${inn}</b>今晚入住</span>` +
     ((S.openIssues || []).length ? `<a href="#" data-goissue>⚠️ ${(S.openIssues || []).length} 件回報待處理</a>` : '');
 
@@ -580,20 +579,20 @@ function renderToday(flashRooms = []) {
 
   // 要掃清單：優先 → 退房 → 續住
   const order = { '退入': 0, '退房': 1, '續住': 2 };
-  const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && R[r].kind !== '入住')
-    .sort((a, b) => (R[a].status === 'done') - (R[b].status === 'done') || (order[R[a].kind] ?? 3) - (order[R[b].kind] ?? 3) || a.localeCompare(b));
+  const list = rooms.filter((r) => R[r] && R[r].status === 'todo' && R[r].kind !== '入住')
+    .sort((a, b) => (order[R[a].kind] ?? 3) - (order[R[b].kind] ?? 3) || a.localeCompare(b));
   $('#todoList').innerHTML = list.length ? list.map((r) => {
     const x = R[r];
     const extra = [x.lateOut && '延後退房 ' + x.lateOut, x.earlyIn && '提早入住 ' + x.earlyIn, x.note].filter(Boolean).join('・');
-    return `<div class="it ${x.status === 'done' ? 'done' : ''}"><span class="no">${esc(r)}</span>
+    return `<div class="it"><span class="no">${esc(r)}</span>
       <div><div style="font-weight:700;color:${x.kind === '退入' ? 'var(--prio)' : 'inherit'}">${esc(kindText(x))}</div>${extra ? `<div class="small muted">${esc(extra)}</div>` : ''}</div>
-      <button class="ck" data-done="${esc(r)}">${x.status === 'done' ? '✓ 掃好了' : '掃好了'}</button></div>`;
+      </div>`;
   }).join('') : `<div class="empty">今天沒有要掃的房間。用上面的標記點房號就能加入。</div>`;
 }
 function plate(r, x, flash) {
   x = x || {};
   const cls = ['plate', x.kind ? 'k-' + x.kind : '', x.status ? 's-' + x.status : '', flash ? 'flash' : ''].join(' ');
-  const st = x.kind ? (x.status === 'done' ? '✓ 掃好了' : (x.kind === '入住' ? '' : STATUS[x.status || ''])) : '空房';
+  const st = x.kind ? (x.kind === '入住' ? '' : STATUS[x.status === 'done' ? 'todo' : (x.status || '')]) : '空房';
   const mini = [x.lateOut && '晚退', x.earlyIn && '早入', x.note && '✎'].filter(Boolean).join(' ');
   const warn = openFor(S.prop, r).length;
   return `<button class="${cls}" data-room="${esc(r)}" aria-label="${esc(r)} ${esc(kindText(x) || '空房')}">
@@ -626,9 +625,9 @@ function openRoom(room) {
       <div class="chips">${Object.keys(KINDS).map((k) => `<button class="chip" data-k="${k}" aria-pressed="${x.kind === k}">${KINDS[k].label}</button>`).join('')}
         <button class="chip" data-k="" aria-pressed="${!x.kind}">空房</button></div>
       ${x.kind ? `<div class="lbl">打掃</div>
-      <div class="chips">${['todo', 'done', ''].map((s) => `<button class="chip c-${s || 'none'}" data-s="${s}" aria-pressed="${(x.status || '') === s}">${STATUS[s]}</button>`).join('')}</div>` : ''}
-      ${list.length ? `<div class="lbl">檢核 <span class="checks"><span class="prog">${[...checks].filter((i) => i < list.length).length}/${list.length}</span></span></div>
-      <div class="checks">${list.map((t, i) => `<label><input type="checkbox" data-c="${i}" ${checks.has(i) ? 'checked' : ''}>${esc(t)}</label>`).join('')}</div>` : ''}
+      <div class="chips">${['todo', ''].map((s) => `<button class="chip c-${s || 'none'}" data-s="${s}" aria-pressed="${(x.status === 'done' ? 'todo' : (x.status || '')) === s}">${STATUS[s]}</button>`).join('')}</div>` : ''}
+      ${list.length ? `<div class="lbl">${x.kind === '續住' ? '續住整理' : '退房整理'}步驟</div>
+      <ol class="steps">${list.map((t) => `<li>${esc(t)}</li>`).join('')}</ol>` : ''}
       ${x.kind ? `<div class="two" style="margin-top:4px">
         <div><div class="lbl">延後退房</div><input type="time" id="fLate" value="${esc(x.lateOut || '')}"></div>
         <div><div class="lbl">提早入住</div><input type="time" id="fEarly" value="${esc(x.earlyIn || '')}"></div></div>` : ''}
@@ -680,7 +679,6 @@ const WORDS = [
   [/續住?/, { kind: '續住' }],
   [/退房?/, { kind: '退房' }],
   [/入住?/, { kind: '入住' }],
-  [/掃好了?|完成|好了/, { status: 'done' }],
   [/不用掃|免掃/, { status: '' }],
   [/清空|清除|取消/, { clear: true }],
 ];
@@ -755,14 +753,14 @@ function metaBar(k, editLabel = '編輯') {
 }
 
 // ---------- 手冊 ----------
-const BOOK = [['handbook', '員工守則'], ['stay', '續住整理'], ['checkout', '退房整理'], ['checklist', '檢核清單']];
+const BOOK = [['handbook', '員工守則'], ['stay', '續住整理'], ['checkout', '退房整理'], ['checklist', '清掃步驟']];
 function renderBook() {
   $('#bookTabs').innerHTML = BOOK.map(([k, t]) => `<button class="chip" data-book="${k}" aria-pressed="${S.bookKey === k}">${t}</button>`).join('');
   const k = S.bookKey;
   $('#bookMeta').innerHTML = metaBar(k);
   if (k === 'checklist') {
     const c = doc('checklist');
-    $('#bookBody').innerHTML = `<p class="muted small">打開房號時會出現的勾選項目。</p><h3>續住</h3><ol>${c.stay.map((x) => `<li>${esc(x)}</li>`).join('')}</ol><h3>退房、退房→入住</h3><ol>${c.checkout.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
+    $('#bookBody').innerHTML = `<p class="muted small">點開房號時會顯示的步驟。</p><h3>續住</h3><ol>${c.stay.map((x) => `<li>${esc(x)}</li>`).join('')}</ol><h3>退房、退房→入住</h3><ol>${c.checkout.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
   } else $('#bookBody').innerHTML = md(doc(k).text);
 }
 
@@ -908,7 +906,6 @@ async function renderReport() {
   const P = R.props[S.prop];
   if (!P) { $('#rptBody').innerHTML = `<p class="empty">${esc(PROPS[S.prop])} ${+m} 月還沒有紀錄。</p>`; return; }
   const t = P.tot;
-  const rate = t.need ? Math.round(t.done / t.need * 100) : 0;
   const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
   const dd = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); return (R.daily[k] || {})[S.prop] || { need: 0, done: 0 }; });
   const max = Math.max(1, ...dd.map((x) => x.need));
@@ -918,21 +915,18 @@ async function renderReport() {
   $('#rptBody').innerHTML = `
     <div class="stats">
       <div class="stat"><b>${t.need}</b><span>要掃（間次）</span></div>
-      <div class="stat"><b style="color:var(--done)">${t.done}</b><span>掃好了・${rate}%</span></div>
       <div class="stat"><b style="color:var(--prio)">${t.turnover}</b><span>退房→入住</span></div>
       <div class="stat"><b>${t.checkout}</b><span>退房</span></div>
       <div class="stat"><b>${t.stayClean}<small style="font-size:16px;color:var(--ink2)">/${t.stay}</small></b><span>續住有掃／續住</span></div>
       <div class="stat"><b style="color:var(--in)">${t.checkin}</b><span>入住</span></div>
-      <div class="stat"><b>${hm(t.avgDone)}</b><span>平均掃好時間</span></div>
     </div>
     <h2 style="margin-top:6px">每天要掃的房間數</h2>
-    <div class="bars" role="img" aria-label="每天要掃與掃好的房間數">${dd.map((x, i) => `<div class="b" title="${+m}/${i + 1}：要掃 ${x.need}，掃好 ${x.done}">
-      <i style="height:${(x.need - Math.min(x.done, x.need)) / max * 100}%"></i><i class="d" style="height:${Math.min(x.done, x.need) / max * 100}%"></i>${(i + 1) % 5 === 0 || i === 0 ? `<em>${i + 1}</em>` : ''}</div>`).join('')}</div>
-    <div class="legend"><span><i class="dot" style="background:var(--done)"></i>掃好了</span><span><i class="dot" style="background:var(--todo)"></i>沒按掃好</span></div>
+    <div class="bars" role="img" aria-label="每天要掃的房間數">${dd.map((x, i) => `<div class="b" title="${+m}/${i + 1}：要掃 ${x.need}">
+      <i style="height:${x.need / max * 100}%"></i>${(i + 1) % 5 === 0 || i === 0 ? `<em>${i + 1}</em>` : ''}</div>`).join('')}</div>
     <h2>各房間</h2>
-    <div class="tablewrap"><table class="rtable"><thead><tr><th>房號</th><th>退房</th><th>退→入</th><th>續住掃</th><th>要掃</th><th>掃好</th><th>平均掃好</th></tr></thead><tbody>
-      ${rooms.map((r) => { const x = P.rooms[r]; return `<tr><td>${esc(r)}</td><td>${x.checkout}</td><td>${x.turnover}</td><td>${x.stayClean}</td><td>${x.need}</td><td>${x.done}</td><td>${hm(x.avgDone)}</td></tr>`; }).join('')}
-      <tr class="sum"><td style="font-family:inherit;font-size:14px">合計</td><td>${t.checkout}</td><td>${t.turnover}</td><td>${t.stayClean}</td><td>${t.need}</td><td>${t.done}</td><td>${hm(t.avgDone)}</td></tr>
+    <div class="tablewrap"><table class="rtable"><thead><tr><th>房號</th><th>退房</th><th>退→入</th><th>續住掃</th><th>要掃</th><th>入住</th></tr></thead><tbody>
+      ${rooms.map((r) => { const x = P.rooms[r]; return `<tr><td>${esc(r)}</td><td>${x.checkout}</td><td>${x.turnover}</td><td>${x.stayClean}</td><td>${x.need}</td><td>${x.checkin}</td></tr>`; }).join('')}
+      <tr class="sum"><td style="font-family:inherit;font-size:14px">合計</td><td>${t.checkout}</td><td>${t.turnover}</td><td>${t.stayClean}</td><td>${t.need}</td><td>${t.checkin}</td></tr>
     </tbody></table></div>
     <h2>問題回報（兩館合計）</h2>
     <div class="stats">
@@ -942,7 +936,7 @@ async function renderReport() {
     </div>
     ${Object.keys(I.byType).length ? `<p class="small">${Object.entries(I.byType).map(([k, v]) => `${esc(k)} ${v}`).join('、')}</p>` : ''}
     ${roomIss.length ? `<p class="small muted">${esc(PROPS[S.prop])}回報最多：${roomIss.map(([k, v]) => `${esc(k.split(':')[1] === 'PUBLIC' ? '公共' : k.split(':')[1])}（${v}）`).join('、')}</p>` : ''}
-    <p class="small muted" style="margin-top:16px">「掃好了」從新版開始記錄時間；舊版大多沒有按掃好，所以 10 月以前的完成率偏低。</p>`;
+`;
 }
 
 // ---------- 回報 ----------
@@ -1107,8 +1101,6 @@ document.addEventListener('click', (e) => {
     else openRoom(room);
     return;
   }
-  const dn = t.closest('[data-done]');
-  if (dn) { const r = dn.dataset.done; const cur = recs()[r] || {}; apply([r], { status: cur.status === 'done' ? 'todo' : 'done' }, cur.status === 'done' ? '改回要掃' : '掃好了'); return; }
   const bk = t.closest('[data-book]');
   if (bk) { S.bookKey = bk.dataset.book; renderBook(); return; }
   const ed = t.closest('[data-edit]');
