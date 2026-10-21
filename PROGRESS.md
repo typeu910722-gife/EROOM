@@ -10,6 +10,13 @@
 - [x] 新 Pages 專案 eroom-app（連 GitHub main 自動部署，D1 綁同一個 eroom），預覽 https://eroom-app.pages.dev 已讀到正式資料
 - [ ] 等確認後把 eroom.yzprojecttw.com 從舊專案 eroom 轉到 eroom-app（舊專案保留當備援）
 
-## 待辦（之後幾輪）
-- 同步到 Google 試算表 1eR4pWmQ0G7oUyhAsVQsim8HakJzeSKRyckXd7OeGihE
-- 問題回報加照片、缺品彙整成補貨清單
+## 第二輪（2026-10-21）
+- [x] 回報分頁：故障／缺備品／遺留物／清潔／其他，可附 3 張照片（前端壓縮，存 D1 photos 表；R2 未開通）
+- [x] 缺備品依房型勾選數量，備品頁頂端自動彙整補貨清單；處理好了就扣掉
+- [x] 房號門牌顯示 ⚠️、今日頁顯示待處理數、底部分頁紅點
+- [x] /api/export（需 settings.sync_key）＋ gas/Code.gs：每 15 分鐘同步到「旅宿不貳家」試算表（房務紀錄、回報、補貨清單）
+- [ ] 試算表裝 Apps Script、設定 SYNC_KEY、使用者授權執行 setup()
+
+## 待辦
+- 推上線：eroom.yzprojecttw.com 轉到 eroom-app
+- 每天早上把要掃的房間推送到 LINE

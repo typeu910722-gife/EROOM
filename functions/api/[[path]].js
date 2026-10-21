@@ -8,6 +8,10 @@ const DOC_KEYS = ['handbook', 'stay', 'checkout', 'checklist', 'supplies', 'room
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ROOM_RE = /^[0-9A-Za-z\-]{1,8}$/;
 
+const ISSUE_TYPES = ['故障', '缺備品', '遺留物', '清潔', '其他'];
+const twDate = (ms) => new Date(ms + 8 * 3600e3).toISOString().slice(0, 10);
+const issueOut = (r) => ({ ...r, items: JSON.parse(r.items || '[]'), photos: JSON.parse(r.photos || '[]') });
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
@@ -148,6 +152,74 @@ export async function onRequest(ctx) {
           .bind(b.k, s, Date.now()).run();
         return json({ ok: true });
       }
+    }
+
+    // ---- 問題回報（含照片、缺備品）----
+    if (path === 'issues') {
+      if (m === 'GET') {
+        const st = url.searchParams.get('status') || 'open';
+        const limit = Math.min(+url.searchParams.get('limit') || 100, 300);
+        const q = st === 'all'
+          ? env.DB.prepare('SELECT * FROM issues ORDER BY created_at DESC LIMIT ?').bind(limit)
+          : env.DB.prepare('SELECT * FROM issues WHERE status=? ORDER BY created_at DESC LIMIT ?').bind(st, limit);
+        const { results } = await q.all();
+        return json({ issues: results.map(issueOut) });
+      }
+      if (m === 'POST') {
+        const b = await body(request);
+        if (!b || !PROPS.includes(b.p) || !ROOM_RE.test(String(b.room || '')) || !ISSUE_TYPES.includes(b.type)) return bad('參數錯誤');
+        const now = Date.now();
+        const items = (Array.isArray(b.items) ? b.items : []).slice(0, 40)
+          .map((i) => ({ name: String(i.name || '').slice(0, 30), qty: Math.max(1, Math.min(99, parseInt(i.qty) || 1)) }))
+          .filter((i) => i.name);
+        const photoIds = [];
+        const stmts = [];
+        for (const du of (Array.isArray(b.photos) ? b.photos : []).slice(0, 3)) {
+          const mm = /^data:(image\/(jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(du));
+          if (!mm || mm[3].length > 1_400_000) continue;
+          const id = crypto.randomUUID().replace(/-/g, '');
+          photoIds.push(id);
+          stmts.push(env.DB.prepare('INSERT INTO photos (id,mime,data,created_at) VALUES (?,?,?,?)').bind(id, mm[1], mm[3], now));
+        }
+        stmts.push(env.DB.prepare('INSERT INTO issues (prop,room,date,type,text,items,photos,by,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+          .bind(b.p, b.room, DATE_RE.test(b.d || '') ? b.d : twDate(now), b.type, String(b.text || '').slice(0, 500),
+            JSON.stringify(items), JSON.stringify(photoIds), String(b.by || '').slice(0, 20), 'open', now));
+        await env.DB.batch(stmts);
+        return json({ ok: true });
+      }
+      if (m === 'PATCH' || m === 'PUT') {
+        const b = await body(request);
+        if (!b || !Number.isInteger(b.id) || !['open', 'done'].includes(b.status)) return bad('參數錯誤');
+        const now = Date.now();
+        await env.DB.prepare('UPDATE issues SET status=?, resolved_at=?, resolved_by=? WHERE id=?')
+          .bind(b.status, b.status === 'done' ? now : null, b.status === 'done' ? String(b.by || '').slice(0, 20) : null, b.id).run();
+        return json({ ok: true });
+      }
+    }
+
+    if (path.startsWith('photo/') && m === 'GET') {
+      const id = path.slice(6);
+      if (!/^[0-9a-f]{32}$/.test(id)) return bad('找不到', 404);
+      const row = await env.DB.prepare('SELECT mime,data FROM photos WHERE id=?').bind(id).first();
+      if (!row) return bad('找不到', 404);
+      const bin = Uint8Array.from(atob(row.data), (c) => c.charCodeAt(0));
+      return new Response(bin, { headers: { 'content-type': row.mime, 'cache-control': 'public, max-age=31536000, immutable' } });
+    }
+
+    // ---- 給 Google 試算表同步用（需要同步金鑰）----
+    if (path === 'export' && m === 'GET') {
+      const k = request.headers.get('x-sync-key') || url.searchParams.get('key') || '';
+      const row = await env.DB.prepare("SELECT v FROM settings WHERE k='sync_key'").first();
+      if (!row || !k || k !== row.v) return bad('同步金鑰錯誤', 401);
+      const from = url.searchParams.get('from'), to = url.searchParams.get('to');
+      if (!DATE_RE.test(from || '') || !DATE_RE.test(to || '')) return bad('參數錯誤');
+      const recs = await env.DB.prepare('SELECT prop,date,room,data,updated_at FROM records WHERE date BETWEEN ? AND ? ORDER BY date,prop,room').bind(from, to).all();
+      const iss = await env.DB.prepare('SELECT * FROM issues WHERE date BETWEEN ? AND ? OR status=\'open\' ORDER BY created_at').bind(from, to).all();
+      const origin = url.origin;
+      return json({
+        records: recs.results.map((r) => ({ prop: r.prop, date: r.date, room: r.room, ...JSON.parse(r.data), updated_at: r.updated_at })),
+        issues: iss.results.map((r) => ({ ...issueOut(r), photoUrls: JSON.parse(r.photos || '[]').map((id) => origin + '/api/photo/' + id) })),
+      });
     }
 
     return bad('找不到', 404);

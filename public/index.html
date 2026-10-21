@@ -44,6 +44,10 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:20;background:var(--shee
 nav.tabs button{flex:1;max-width:190px;border:0;background:none;padding:10px 0 12px;color:var(--ink2);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px}
 nav.tabs svg{width:22px;height:22px}
 nav.tabs button[aria-current=page]{color:var(--ink);font-weight:700}
+nav.tabs button{position:relative}
+#issueBadge:not(:empty){position:absolute;top:5px;left:calc(50% + 6px);background:var(--prio);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:0 6px;line-height:17px}
+.pick{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-weight:500}
+.pick input{display:none}
 nav.tabs button[aria-current=page] svg{stroke-width:2.2}
 
 section.page{display:none}
@@ -159,6 +163,32 @@ textarea{min-height:90px;resize:vertical;line-height:1.6}
 .rcard .tp{font-weight:700}
 .rcard .nt{color:var(--ink2);font-size:13px}
 
+.issue{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:12px 14px;margin-bottom:10px}
+.issue .hd{display:flex;align-items:baseline;gap:8px}
+.issue .hd .no{font-family:var(--plate);font-size:26px;font-weight:700;line-height:1}
+.issue .ty{font-size:12px;font-weight:700;border-radius:4px;padding:1px 7px;background:#e7ebe7}
+.issue .ty.t-故障{background:#f6dcd7;color:#8f2a1b}.issue .ty.t-缺備品{background:#fbedc9;color:#7a5a07}.issue .ty.t-遺留物{background:#dbe5f3;color:#2c4f84}
+.issue .tm{margin-left:auto;font-size:12px;color:var(--ink2);text-align:right}
+.issue .tx{margin:6px 0 0;white-space:pre-wrap}
+.issue .its{margin:6px 0 0;font-size:14px}
+.issue .ph{display:flex;gap:6px;margin-top:8px}
+.issue .ph img{width:76px;height:76px;object-fit:cover;border-radius:8px;background:#ddd}
+.issue .ft{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--ink2)}
+.issue .ft .btn{margin-left:auto;padding:7px 14px;font-size:14px;background:var(--done)}
+.issue.done{opacity:.72}.issue.done .ft .btn{background:none;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.addbtn{width:100%;margin:16px 0 4px;padding:13px;border-radius:var(--r);border:1.5px dashed var(--ink2);background:none;font-weight:700}
+.restock{background:#fbf1d6;border-radius:var(--r);padding:10px 16px;margin-bottom:14px}
+.restock h3{margin:4px 0 6px;font-size:16px}
+.restock table{width:100%;border-collapse:collapse}.restock td{padding:5px 0;border-top:1px solid #ecd9a3;vertical-align:top}
+.restock tr:first-child td{border-top:0}.restock td.q{font-family:var(--plate);font-size:19px;font-weight:700;text-align:right;white-space:nowrap;width:1%;padding-left:10px}
+.restock td.r{color:#7a5a07;font-size:13px}
+.qty{display:flex;align-items:center;gap:6px}.qty button{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-weight:700}
+.qty b{min-width:20px;text-align:center;font-family:var(--plate);font-size:18px}
+.sitem{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--line)}.sitem:first-child{border-top:0}
+.sitem label{flex:1;display:flex;gap:8px;align-items:center}.sitem input{width:20px;height:20px;accent-color:var(--todo)}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px}
+.plate .warn{position:absolute;top:6px;left:auto;right:32px;font-size:13px}
+.counts a{color:var(--prio);font-weight:700;text-decoration:none}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:9px 8px 9px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
 .toast.on{display:flex}
 .toast button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:4px 12px}
@@ -204,6 +234,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.6}
     <div class="list" id="todoList"></div>
   </section>
 
+  <!-- 回報 -->
+  <section class="page" id="p-issue">
+    <button class="addbtn" id="newIssue">＋ 回報問題（故障、缺備品、遺留物）</button>
+    <div class="subtabs" id="issueTabs"></div>
+    <div id="issueBody"></div>
+  </section>
+
   <!-- 手冊 -->
   <section class="page" id="p-book">
     <div class="subtabs" id="bookTabs"></div>
@@ -226,6 +263,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.6}
 
 <nav class="tabs" aria-label="主選單">
   <button data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>今日</button>
+  <button data-tab="issue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>回報<span id="issueBadge"></span></button>
   <button data-tab="book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
   <button data-tab="supply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>備品</button>
   <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>房間</button>
@@ -357,6 +395,7 @@ const S = {
   bookKey: 'handbook',
   admin: ss.get('eroom.admin'),
   pending: ls.get('eroom.pending', []),
+  issues: [], issueFilter: 'open', me: ls.get('eroom.me', ''),
 };
 
 function todayStr(d = new Date()) {
@@ -390,6 +429,17 @@ async function loadDocs() {
   const j = await api('docs');
   S.docs = j.docs || {};
 }
+async function loadIssues() {
+  const j = await api('issues?status=' + (S.issueFilter === 'open' ? 'open' : 'all') + '&limit=150');
+  S.issues = j.issues || [];
+  if (S.issueFilter === 'open') S.openIssues = S.issues; else S.openIssues = S.issues.filter((i) => i.status === 'open');
+  renderBadge();
+}
+function renderBadge() {
+  const n = (S.openIssues || []).length;
+  $('#issueBadge').textContent = n ? String(n) : '';
+}
+const openFor = (p, r) => (S.openIssues || []).filter((i) => i.prop === p && i.room === r);
 const doc = (k) => S.docs[k] || DEFAULTS[k];
 const isDraft = (k) => !S.docs[k];
 
@@ -490,7 +540,8 @@ function renderToday(flashRooms = []) {
   $('#counts').innerHTML =
     `<span><i class="dot" style="background:var(--todo)"></i><b>${todo}</b>要掃${prio ? `（優先 ${prio}）` : ''}</span>` +
     `<span><i class="dot" style="background:var(--done)"></i><b>${done}</b>掃好了</span>` +
-    `<span><i class="dot" style="background:var(--in)"></i><b>${inn}</b>今晚入住</span>`;
+    `<span><i class="dot" style="background:var(--in)"></i><b>${inn}</b>今晚入住</span>` +
+    ((S.openIssues || []).length ? `<a href="#" data-goissue>⚠️ ${(S.openIssues || []).length} 件回報待處理</a>` : '');
 
   // 依樓層
   const fl = {};
@@ -516,8 +567,9 @@ function plate(r, x, flash) {
   const cls = ['plate', x.kind ? 'k-' + x.kind : '', x.status ? 's-' + x.status : '', flash ? 'flash' : ''].join(' ');
   const st = x.kind ? (x.status === 'done' ? '✓ 掃好了' : (x.kind === '入住' ? '' : STATUS[x.status || ''])) : '空房';
   const mini = [x.lateOut && '晚退', x.earlyIn && '早入', x.note && '✎'].filter(Boolean).join(' ');
+  const warn = openFor(S.prop, r).length;
   return `<button class="${cls}" data-room="${esc(r)}" aria-label="${esc(r)} ${esc(kindText(x) || '空房')}">
-    ${x.kind ? '<span class="tag"></span>' : ''}<span class="no">${esc(r)}</span>
+    ${x.kind ? '<span class="tag"></span>' : ''}${warn ? '<span class="warn" title="有未處理的回報">⚠️</span>' : ''}<span class="no">${esc(r)}</span>
     <span><span class="kd">${esc(x.kind ? (KINDS[x.kind]?.label || x.kind) : '')}</span><br><span class="st">${esc(st)}</span></span>
     ${mini ? `<span class="mini">${esc(mini)}</span>` : ''}</button>`;
 }
@@ -554,6 +606,8 @@ function openRoom(room) {
         <div><div class="lbl">提早入住</div><input type="time" id="fEarly" value="${esc(x.earlyIn || '')}"></div></div>` : ''}
       <div class="lbl">備註（勿擾、缺備品、故障、遺留物⋯）</div>
       <textarea id="fNote" placeholder="例如：浴室燈不亮">${esc(x.note || '')}</textarea>
+      ${openFor(S.prop, room).length ? `<div class="lbl">這間未處理的回報</div>${openFor(S.prop, room).map((i) => `<div class="small">⚠️ ${esc(i.type)}：${esc(i.text || i.items.map((t) => t.name + '×' + t.qty).join('、'))}</div>`).join('')}` : ''}
+      <button class="addbtn" id="sIssue" style="margin-top:14px">＋ 回報這間的問題</button>
       <div class="btnrow"><button class="btn ghost" id="sClose">取消</button><button class="btn wide" id="sSave">儲存</button></div>`;
   };
   draw();
@@ -564,6 +618,7 @@ function openRoom(room) {
     const s = e.target.closest('[data-s]');
     if (s) { x.status = s.dataset.s; keepFields(); return draw(); }
     if (e.target.id === 'sClose') return closeSheet();
+    if (e.target.id === 'sIssue') return openIssueForm(room);
     if (e.target.id === 'sSave') {
       keepFields();
       const data = { kind: x.kind || '', status: x.status || '', note: x.note || '', lateOut: x.lateOut || '', earlyIn: x.earlyIn || '', checks: x.checks || [] };
@@ -701,7 +756,15 @@ function renderSupply() {
   $('#supplyMeta').innerHTML = metaBar('supplies');
   const groups = parseSupplies(doc('supplies').text);
   const info = doc('roominfo').rooms || {};
-  $('#supplyBody').innerHTML = groups.map((g) => {
+  // 補貨清單：未處理的「缺備品」回報加總
+  const need = {};
+  for (const i of (S.openIssues || []).filter((i) => i.type === '缺備品')) {
+    for (const it of i.items) { const n = (need[it.name] ||= { qty: 0, rooms: [] }); n.qty += it.qty; n.rooms.push(PROPS[i.prop] + ' ' + i.room); }
+  }
+  const needHtml = Object.keys(need).length ? `<div class="restock"><h3>補貨清單</h3><table>${Object.keys(need).map((k) =>
+    `<tr><td>${esc(k)}<div class="r">${esc([...new Set(need[k].rooms)].join('、'))}</div></td><td class="q">${need[k].qty}</td></tr>`).join('')}</table>
+    <p class="small" style="color:#7a5a07;margin:6px 0 4px">補好後到「回報」把那幾筆按「處理好了」，這裡就會扣掉。</p></div>` : '';
+  $('#supplyBody').innerHTML = needHtml + groups.map((g) => {
     const rooms = Object.keys(info).filter((k) => info[k].type === g.name).map((k) => k.split(':')[1]);
     return `<div class="supply"><h3>${esc(g.name)}${rooms.length ? `<span>${esc(rooms.join(' '))}</span>` : ''}</h3><table>${g.items.map((i) =>
       `<tr><td>${esc(i.name)}${i.note ? `<div class="n">${esc(i.note)}</div>` : ''}</td><td class="q">${esc(i.qty)}</td></tr>`).join('')}</table></div>`;
@@ -797,6 +860,112 @@ async function saveDoc(k, data) {
   }
 }
 
+// ---------- 回報 ----------
+const ISSUE_TYPES = ['故障', '缺備品', '遺留物', '清潔', '其他'];
+function fmtTime(ms) { const d = new Date(ms); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function renderIssues() {
+  $('#issueTabs').innerHTML = [['open', '未處理'], ['all', '全部']].map(([k, t]) => `<button class="chip" data-ifilter="${k}" aria-pressed="${S.issueFilter === k}">${t}</button>`).join('');
+  const list = S.issues;
+  $('#issueBody').innerHTML = list.length ? list.map((i) => `
+    <div class="issue ${i.status === 'done' ? 'done' : ''}">
+      <div class="hd"><span class="no">${esc(i.room === 'PUBLIC' ? '公共' : i.room)}</span><span class="small muted">${esc(PROPS[i.prop] || i.prop)}</span><span class="ty t-${esc(i.type)}">${esc(i.type)}</span>
+        <span class="tm">${fmtTime(i.created_at)}${i.by ? '<br>' + esc(i.by) : ''}</span></div>
+      ${i.text ? `<p class="tx">${esc(i.text)}</p>` : ''}
+      ${i.items.length ? `<p class="its">${i.items.map((t) => esc(t.name) + ' ×' + t.qty).join('、')}</p>` : ''}
+      ${i.photos.length ? `<div class="ph">${i.photos.map((id) => `<a href="/api/photo/${id}" target="_blank" rel="noopener"><img src="/api/photo/${id}" alt="回報照片" loading="lazy"></a>`).join('')}</div>` : ''}
+      <div class="ft">${i.status === 'done' ? `✓ ${esc(i.resolved_by || '')} ${i.resolved_at ? fmtTime(i.resolved_at) : ''} 處理好了` : ''}
+        <button class="btn" data-resolve="${i.id}" data-to="${i.status === 'done' ? 'open' : 'done'}">${i.status === 'done' ? '重新打開' : '處理好了'}</button></div>
+    </div>`).join('') : `<p class="empty">${S.issueFilter === 'open' ? '目前沒有待處理的回報。' : '還沒有任何回報。'}</p>`;
+}
+async function resolveIssue(id, to) {
+  try {
+    await api('issues', { method: 'PATCH', body: JSON.stringify({ id, status: to, by: S.me }) });
+    toast(to === 'done' ? '已標記處理好了' : '已重新打開');
+    await loadIssues(); renderAll();
+  } catch (e) { toast(e.message, false, true); }
+}
+// 照片壓縮成長邊 1280px 的 JPEG
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1280 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.72));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('這張照片讀不到，換一張試試')); };
+    img.src = url;
+  });
+}
+function supplyItemsFor(room) {
+  const groups = parseSupplies(doc('supplies').text);
+  const type = ((doc('roominfo').rooms || {})[S.prop + ':' + room] || {}).type;
+  const g = groups.find((x) => x.name === type);
+  const names = g ? g.items.map((i) => i.name) : [...new Set(groups.flatMap((x) => x.items.map((i) => i.name)))];
+  return names;
+}
+function openIssueForm(room) {
+  const rooms = S.rooms[S.prop] || [];
+  const f = { room: room || '', type: room ? '' : '', text: '', items: {}, photos: [], extra: '' };
+  const draw = () => {
+    const names = f.room ? supplyItemsFor(f.room) : [];
+    $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">回報問題</h3><div class="sub">${esc(PROPS[S.prop])}。送出後會出現在「回報」，管理員處理好再按掉。</div>
+      <div class="lbl">房號</div>
+      <select id="qRoom"><option value="">選房號</option>${rooms.map((r) => `<option ${f.room === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}<option value="公共" ${f.room === '公共' ? 'selected' : ''}>公共區域</option></select>
+      <div class="lbl">類型</div>
+      <div class="chips">${ISSUE_TYPES.map((t) => `<button class="chip" data-qt="${t}" aria-pressed="${f.type === t}">${t}</button>`).join('')}</div>
+      ${f.type === '缺備品' ? `<div class="lbl">缺哪些（勾選並調整數量）</div><div>${names.map((n) => `
+        <div class="sitem"><label><input type="checkbox" data-qi="${esc(n)}" ${f.items[n] ? 'checked' : ''}>${esc(n)}</label>
+        ${f.items[n] ? `<span class="qty"><button data-qm="${esc(n)}" aria-label="減少">−</button><b>${f.items[n]}</b><button data-qp="${esc(n)}" aria-label="增加">＋</button></span>` : ''}</div>`).join('') || '<p class="small muted">先選房號，或請管理員在備品清單建立品項。</p>'}
+        <input type="text" id="qExtra" placeholder="其他沒列出的品項，例如：吹風機" value="${esc(f.extra)}" style="margin-top:8px"></div>` : ''}
+      <div class="lbl">說明</div>
+      <textarea id="qText" placeholder="${f.type === '遺留物' ? '例如：黑色充電線，已放櫃台抽屜' : '例如：浴室燈不亮、馬桶一直流水'}">${esc(f.text)}</textarea>
+      <div class="lbl">照片（最多 3 張）</div>
+      ${f.photos.length < 3 ? `<label class="pick">📷 拍照或選照片<input type="file" id="qPhoto" accept="image/*" multiple></label>` : ''}
+      <div class="thumbs">${f.photos.map((p, i) => `<img src="${p}" alt="照片 ${i + 1}" data-qx="${i}" title="點一下移除">`).join('')}</div>
+      <div class="lbl">你的名字</div><input type="text" id="qBy" value="${esc(S.me)}" placeholder="例如：小美">
+      <div class="btnrow"><button class="btn ghost" id="qClose">取消</button><button class="btn wide" id="qSend">送出回報</button></div>`;
+  };
+  const keep = () => { const t = $('#qText'), x = $('#qExtra'), r = $('#qRoom'), b = $('#qBy'); if (t) f.text = t.value; if (x) f.extra = x.value; if (r) f.room = r.value; if (b) { S.me = b.value.trim(); ls.set('eroom.me', S.me); } };
+  draw();
+  const body = $('#sheetBody');
+  body.onclick = async (e) => {
+    const t = e.target;
+    if (t.dataset.qt) { keep(); f.type = t.dataset.qt; return draw(); }
+    if (t.dataset.qp) { keep(); f.items[t.dataset.qp] = Math.min(99, f.items[t.dataset.qp] + 1); return draw(); }
+    if (t.dataset.qm) { keep(); f.items[t.dataset.qm] = Math.max(1, f.items[t.dataset.qm] - 1); return draw(); }
+    if (t.dataset.qx != null) { keep(); f.photos.splice(+t.dataset.qx, 1); return draw(); }
+    if (t.id === 'qClose') return closeSheet();
+    if (t.id === 'qSend') {
+      keep();
+      const items = Object.keys(f.items).map((name) => ({ name, qty: f.items[name] }));
+      if (f.extra.trim()) f.extra.split(/[、,，]/).map((x) => x.trim()).filter(Boolean).forEach((name) => items.push({ name, qty: 1 }));
+      if (!f.room) return toast('請選房號', false, true);
+      if (!f.type) return toast('請選類型', false, true);
+      if (!f.text.trim() && !items.length && !f.photos.length) return toast('請寫一下說明或附照片', false, true);
+      t.disabled = true; t.textContent = '送出中⋯';
+      try {
+        await api('issues', { method: 'POST', body: JSON.stringify({ p: S.prop, room: f.room === '公共' ? 'PUBLIC' : f.room, d: S.date, type: f.type, text: f.text.trim(), items, photos: f.photos, by: S.me }) });
+        closeSheet(); toast('已送出回報'); await loadIssues(); renderAll();
+      } catch (err) { t.disabled = false; t.textContent = '送出回報'; toast(err.message, false, true); }
+    }
+  };
+  body.onchange = async (e) => {
+    const t = e.target;
+    if (t.id === 'qRoom') { keep(); f.items = {}; return draw(); }
+    if (t.dataset.qi) { keep(); t.checked ? (f.items[t.dataset.qi] = 1) : delete f.items[t.dataset.qi]; return draw(); }
+    if (t.id === 'qPhoto') {
+      keep();
+      for (const file of [...t.files].slice(0, 3 - f.photos.length)) {
+        try { f.photos.push(await shrink(file)); } catch (err) { toast(err.message, false, true); }
+      }
+      draw();
+    }
+  };
+  openSheet();
+}
+
 // ---------- 管理員 ----------
 function renderLock() { const b = $('#lockBtn'); b.textContent = S.admin ? '🔓' : '🔒'; b.classList.toggle('on', !!S.admin); b.setAttribute('aria-label', S.admin ? '管理員已登入，點一下登出' : '管理員登入'); }
 $('#lockBtn').onclick = () => {
@@ -837,6 +1006,12 @@ document.addEventListener('click', (e) => {
   const tool = t.closest('[data-tool]');
   if (tool) { S.tool = S.tool === tool.dataset.tool ? null : tool.dataset.tool; renderTools(); return; }
   if (t.closest('#textBtn')) { openText(); return; }
+  const rs = t.closest('[data-resolve]');
+  if (rs) { resolveIssue(+rs.dataset.resolve, rs.dataset.to); return; }
+  const fi = t.closest('[data-ifilter]');
+  if (fi) { S.issueFilter = fi.dataset.ifilter; loadIssues().then(renderIssues).catch(() => {}); renderIssues(); return; }
+  if (t.closest('#newIssue')) { openIssueForm(''); return; }
+  if (t.closest('[data-goissue]')) { e.preventDefault(); document.querySelector('[data-tab="issue"]').click(); return; }
   const pl = t.closest('.plate');
   if (pl) {
     const room = pl.dataset.room;
@@ -867,11 +1042,12 @@ async function selectProp(p) {
 }
 async function refresh() {
   renderAll();
-  try { await loadRecs(); $('#offline').classList.remove('on'); } catch { $('#offline').classList.add('on'); }
+  try { await Promise.all([loadRecs(), loadIssues()]); $('#offline').classList.remove('on'); } catch { $('#offline').classList.add('on'); }
   renderAll();
 }
 function renderAll() {
   if (S.tab === 'today') { renderTools(); renderToday(); }
+  if (S.tab === 'issue') renderIssues();
   if (S.tab === 'book') renderBook();
   if (S.tab === 'supply') renderSupply();
   if (S.tab === 'rooms') renderRooms();
@@ -885,7 +1061,7 @@ setInterval(() => { if (!document.hidden && S.tab === 'today' && !S.pending.leng
   renderLock();
   document.querySelectorAll('[data-prop]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.prop === S.prop));
   renderAll();
-  await Promise.all([loadRooms('ersu'), loadRooms('eryanglou'), loadDocs()].map((p) => p.catch(() => {})));
+  await Promise.all([loadRooms('ersu'), loadRooms('eryanglou'), loadDocs(), loadIssues()].map((p) => p.catch(() => {})));
   if (S.admin) api('admin', { method: 'POST' }).catch(() => { S.admin = ''; ss.set('eroom.admin', ''); renderLock(); });
   flush();
   refresh();
