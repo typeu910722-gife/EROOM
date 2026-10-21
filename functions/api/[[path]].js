@@ -12,6 +12,32 @@ const ISSUE_TYPES = ['故障', '缺備品', '遺留物', '清潔', '其他'];
 const twDate = (ms) => new Date(ms + 8 * 3600e3).toISOString().slice(0, 10);
 const issueOut = (r) => ({ ...r, items: JSON.parse(r.items || '[]'), photos: JSON.parse(r.photos || '[]') });
 
+const txt = (s, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
+
+// 文字解析：「標記 房號 房號 標記 房號」
+const WORDS = [
+  [/退房?\s*(→|->|接|轉)\s*入住?|退入|退房入住|退房接入住/, { kind: '退入', status: 'todo' }],
+  [/續住?要?掃|續住/, { kind: '續住', status: 'todo' }],
+  [/續住不用掃|續不掃/, { kind: '續住', status: '' }],
+  [/退房?/, { kind: '退房', status: 'todo' }],
+  [/入住?/, { kind: '入住', status: '' }],
+  [/不用掃|免掃/, { status: '' }],
+  [/清空|清除|取消|空房/, { kind: '', status: '', note: '' }],
+];
+function parseText(text, rooms) {
+  const set = new Map(rooms.map((r) => [r.toUpperCase(), r]));
+  const tokens = String(text).replace(/[，,、；;：:\n\/.。+＋]+/g, ' ').split(/\s+/).filter(Boolean);
+  const items = [], unknown = [];
+  let cur = null;
+  for (const tk of tokens) {
+    const mm = tk.match(/^([^\dA-Za-z]+)?([\dA-Za-z]+)?$/);
+    const word = mm ? mm[1] : tk, num = mm ? mm[2] : null;
+    if (word) { const order = [WORDS[2], WORDS[0], WORDS[1], WORDS[3], WORDS[4], WORDS[5], WORDS[6]]; const w = order.find(([re]) => re.test(word)); if (w) cur = w[1]; }
+    if (num && cur) { const r = set.get(num.toUpperCase()); if (r) items.push({ room: r, data: { ...cur } }); else unknown.push(num); }
+  }
+  return { items, unknown };
+}
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
@@ -152,6 +178,35 @@ export async function onRequest(ctx) {
           .bind(b.k, s, Date.now()).run();
         return json({ ok: true });
       }
+    }
+
+    // ---- 純文字寫入（給 Grok 用網址登記房況）----
+    // GET/POST /api/text/set?k=金鑰&p=ersu&d=2026-10-21&t=退房 201 203 退入 305 續住 501 入住 306
+    // mode=replace：先把那天那館清空再寫；預設只改有寫到的房間
+    if (path === 'text/set' && (m === 'GET' || m === 'POST')) {
+      const key = await env.DB.prepare("SELECT v FROM settings WHERE k='bot_key'").first();
+      if (!key || url.searchParams.get('k') !== key.v) return txt('金鑰錯誤', 401);
+      const pp = url.searchParams.get('p');
+      const d = url.searchParams.get('d') || twDate(Date.now());
+      let t = url.searchParams.get('t') || '';
+      if (m === 'POST') t = (await request.text()) || t;
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）或 eryanglou（貳洋樓）', 400);
+      if (!DATE_RE.test(d)) return txt('d 日期格式要像 2026-10-21', 400);
+      const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
+      const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
+      const { items, unknown } = parseText(t, rooms);
+      if (!items.length && url.searchParams.get('mode') !== 'replace') return txt('沒有辨識到房號。寫法例如：退房 201 203 退入 305 續住 501 入住 306' + (unknown.length ? `\n不認得的房號：${unknown.join('、')}` : ''), 400);
+      const now = Date.now();
+      const stmts = [];
+      if (url.searchParams.get('mode') === 'replace') {
+        const touched = new Set(items.map((i) => i.room));
+        for (const r of rooms) if (!touched.has(r)) stmts.push(await upsertRecord(env, pp, d, r, { kind: '', status: '', note: '' }, now));
+      }
+      for (const it of items) stmts.push(await upsertRecord(env, pp, d, it.room, it.data, now));
+      if (stmts.length) await env.DB.batch(stmts);
+      const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
+      return txt(`已登記 ${name} ${d}：${items.map((i) => i.room + ' ' + (i.data.kind === '續住' ? (i.data.status ? '續住要掃' : '續住不用掃') : i.data.kind ? ({ '退入': '退房→入住' })[i.data.kind] || i.data.kind : 'kind' in i.data ? '清空' : '不用掃')).join('、')}` +
+        (unknown.length ? `\n不認得的房號（沒寫入）：${unknown.join('、')}` : '') + `\n網站：https://eroom.yzprojecttw.com/?p=${pp}&d=${d}`);
     }
 
     // ---- 純文字查詢（給 Grok 等讀取用，一次拿多天，不用操作網頁）----

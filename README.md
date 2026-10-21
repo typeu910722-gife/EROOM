@@ -15,6 +15,7 @@
 | GET | `/api/records?p=&d=YYYY-MM-DD` | 某天各房狀態 |
 | POST | `/api/records` | `{p,d,room,data}` 或 `{p,d,items:[{room,data}]}`，合併更新 |
 | GET | `/api/summary?from=&to=` | 區間統計 |
+| GET/POST | `/api/text/set?k=金鑰&p=&d=&t=` | 純文字寫入（給 Grok）；`mode=replace` 先清空當天該館；金鑰在 D1 settings.bot_key |
 | GET | `/api/text?p=ersu\|eryanglou&from=&to=` | 純文字房況（給 Grok 讀，一次多天，最多 93 天；不帶 p 就兩館） |
 | GET/PUT | `/api/docs` | 手冊、檢核、備品、房間資料（PUT 需管理員） |
 
