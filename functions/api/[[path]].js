@@ -299,6 +299,19 @@ async function verifySig(secret, body, sig) {
 
 function floorOf(r) { return r.length >= 3 ? r.slice(0, -2) : r.slice(0, 1); }
 
+// 同一層縮寫：201.3.5.6（第一間寫全，後面同樓層只寫尾號；非純數字房號照寫）
+function compact(list, R) {
+  const fl = {};
+  for (const r of list) (fl[floorOf(r)] ||= []).push(r);
+  return Object.keys(fl).map((f) => fl[f].map((r, i) => {
+    let t = r;
+    if (i > 0 && /^\d+$/.test(r) && /^\d+$/.test(fl[f][0]) && r.length === fl[f][0].length) t = String(parseInt(r.slice(f.length), 10));
+    const x = R[r] || {};
+    const extra = [x.lateOut && '延退' + x.lateOut, x.earlyIn && '早入' + x.earlyIn, x.note].filter(Boolean).join(' ');
+    return t + (extra ? `（${extra}）` : '');
+  }).join('.'));
+}
+
 async function dailyText(env, date, props = PROPS) {
   const d = new Date(date + 'T00:00:00Z');
   const lines = [`🧹${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK[d.getUTCDay()]}）`];
@@ -307,19 +320,15 @@ async function dailyText(env, date, props = PROPS) {
     const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
     const { results } = await env.DB.prepare('SELECT room,data FROM records WHERE prop=? AND date=?').bind(p, date).all();
     const R = {}; for (const r of results) R[r.room] = JSON.parse(r.data);
-    const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && KIND_LABEL[R[r].kind]);
-    const prioRooms = list.filter((r) => R[r].kind === '退入');
-    lines.push(`【${PROP_NAME[p]}】${list.length ? list.length + ' 間' + (prioRooms.length ? `（優先 ${prioRooms.length}）` : '') : '今天不用掃'}`);
-    const fl = {};
-    for (const r of list) (fl[floorOf(r)] ||= []).push(r);
-    for (const f of Object.keys(fl)) {
-      lines.push(fl[f].sort((a, b) => rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
-        const x = R[r];
-        const extra = [x.lateOut && '延退' + x.lateOut, x.earlyIn && '早入' + x.earlyIn, x.note].filter(Boolean).join(' ');
-        return r + (extra ? `（${extra}）` : '');
-      }).join('、'));
+    const byNo = (a, b) => rooms.indexOf(a) - rooms.indexOf(b);
+    const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && KIND_LABEL[R[r].kind]).sort(byNo);
+    const prio = list.filter((r) => R[r].kind === '退入');
+    lines.push(`【${PROP_NAME[p]}】${list.length ? list.length + ' 間' : '今天不用掃'}`);
+    lines.push(...compact(list, R));
+    if (prio.length) {
+      lines.push(`⭐今日入住（優先 ${prio.length}）：`);
+      lines.push(...compact(prio, {}));
     }
-    if (prioRooms.length) lines.push('⭐今日入住優先：' + prioRooms.sort((a, b) => rooms.indexOf(a) - rooms.indexOf(b)).join('.'));
   }
   return lines.join('\n').slice(0, 4900);
 }
