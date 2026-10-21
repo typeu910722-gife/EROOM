@@ -897,7 +897,7 @@ $('#lockBtn').onclick = () => {
     try { await api('admin', { method: 'POST' }); ss.set('eroom.admin', pw); closeSheet(); renderLock(); renderAll(); toast('管理員已登入'); }
     catch (e) { S.admin = ''; toast(e.message, false, true); }
   };
-  $('#aGo').onclick = go; $('#aPw').onkeydown = (e) => e.key === 'Enter' && go();
+  $('#aGo').onclick = go; $('#aPw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
   openSheet(); setTimeout(() => $('#aPw').focus(), 250);
 };
 
