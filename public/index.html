@@ -200,6 +200,9 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .rbar{display:flex;align-items:center;gap:12px;padding:7px 16px;border-top:1px solid var(--line2)}.rbar:first-child{border-top:0}
 .rbar .no{font-family:var(--serif);font-weight:600;font-size:22px;width:52px;color:var(--gold2)}
 .rbar .track{flex:1;height:8px;border-radius:4px;background:var(--panel2)}.rbar .track i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 14px}.duo .hero .n small{font-size:.45em;margin-left:2px}.duo .hero .n{font-size:64px}
+.bars.pctb .b i{background:linear-gradient(180deg,#e9c98d,#a8864a)}
+.rbar .pc{width:52px}.rbar .ct{font-size:12px;color:var(--mute);width:66px;text-align:right}
 .rbar b{font-family:var(--serif);font-size:20px;font-weight:600;width:30px;text-align:right}
 .rtable{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);font-size:14px}
 .rtable th,.rtable td{padding:7px 9px;text-align:right;border-top:1px solid var(--line2);white-space:nowrap}
@@ -840,6 +843,16 @@ async function renderReport() {
   const P = R.props[S.prop];
   if (!P) { $('#rptBody').innerHTML = `<p class="empty">${esc(PROPS[S.prop])}　${esc(label)}還沒有紀錄。</p>`; return; }
   const t = P.tot;
+  const nRooms = (S.rooms[S.prop] || []).length || Object.keys(P.rooms).length;
+  const pct = (occ, days, n = nRooms) => (days && n ? Math.round(occ / (days * n) * 100) : 0);
+  const rate = pct(t.occ, t.days);
+  let rr;
+  if (T === 'm') {
+    const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
+    rr = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); const x = (R.daily[k] || {})[S.prop]; return x ? pct(x.occ, 1) : null; });
+  } else {
+    rr = months.map((mm) => { const x = (R.monthly[S.rptYear + '-' + String(mm).padStart(2, '0')] || {})[S.prop]; return x && x.days ? pct(x.occ, x.days) : null; });
+  }
   let dd, lab;
   if (T === 'm') {
     const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
@@ -853,12 +866,19 @@ async function renderReport() {
   const rooms = Object.keys(P.rooms).sort((a, b) => (S.rooms[S.prop] || []).indexOf(a) - (S.rooms[S.prop] || []).indexOf(b) || a.localeCompare(b));
   const rmax = Math.max(1, ...rooms.map((r) => P.rooms[r].checkin));
   $('#rptBody').innerHTML = `
-    <div class="hero" style="margin:4px 0 18px"><div class="n">${t.checkin}</div><div class="u">${T === 'm' ? '當月' : T === 'y' ? '全年' : '半年'}總入住（間次）</div></div>
+    <div class="duo">
+      <div class="hero"><div class="n">${rate}<small>%</small></div><div class="u">入住率</div></div>
+      <div class="hero"><div class="n">${t.checkin}</div><div class="u">${T === 'm' ? '當月' : T === 'y' ? '全年' : '半年'}總入住</div></div>
+    </div>
+    <p class="muted small" style="text-align:center;margin:-6px 0 0">${nRooms} 間房 × ${t.days} 天有登記，有客人住的共 ${t.occ} 間晚</p>
+    <h2>${T === 'm' ? '每天入住率' : '每月入住率'}</h2>
+    <div class="bars pctb${T === 'm' ? '' : ' wide'}" role="img" aria-label="入住率">${rr.map((x, i) => `<div class="b" title="${T === 'm' ? +m + '/' + (i + 1) : months[i] + '月'}：${x == null ? '沒有登記' : '入住率 ' + x + '%'}">
+      ${T === 'm' ? '' : `<span class="v">${x == null ? '' : x + '%'}</span>`}<i style="height:${x || 0}%"></i>${(T === 'm' ? ((i + 1) % 5 === 0 || i === 0) : true) ? `<em>${T === 'm' ? i + 1 : months[i] + '月'}</em>` : ''}</div>`).join('')}</div>
     <h2>${T === 'm' ? '每天入住' : '每月入住'}</h2>
     <div class="bars${T === 'm' ? '' : ' wide'}" role="img" aria-label="入住的房間數">${dd.map((x, i) => `<div class="b" title="${T === 'm' ? +m + '/' + (i + 1) : months[i] + '月'}：入住 ${x} 間">
       ${T === 'm' ? '' : `<span class="v">${x || ''}</span>`}<i style="height:${x / max * 100}%"></i>${lab(i) ? `<em>${lab(i)}</em>` : ''}</div>`).join('')}</div>
-    <h2>各房間入住次數</h2>
-    <div class="list">${rooms.map((r) => { const n = P.rooms[r].checkin; return `<div class="rbar"><span class="no">${esc(r)}</span><span class="track"><i style="width:${n / rmax * 100}%"></i></span><b>${n}</b></div>`; }).join('')}</div>`;
+    <h2>各房間入住率</h2>
+    <div class="list">${rooms.map((r) => { const x = P.rooms[r]; const pr = pct(x.occ, t.days, 1); return `<div class="rbar"><span class="no">${esc(r)}</span><span class="track"><i style="width:${pr}%"></i></span><b class="pc">${pr}%</b><span class="ct">入住 ${x.checkin} 次</span></div>`; }).join('')}</div>`;
 }
 
 // ---------- LINE 設定（管理員）----------

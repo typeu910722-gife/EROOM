@@ -253,12 +253,16 @@ export async function onRequest(ctx) {
       const monthly = {};
       for (const r of recs) {
         const d = JSON.parse(r.data);
-        const P = (props[r.prop] ||= { rooms: {}, tot: { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, doneMins: [] } });
-        const R = (P.rooms[r.room] ||= { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, doneMins: [] });
+        const P = (props[r.prop] ||= { rooms: {}, tot: { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, occ: 0, doneMins: [] }, days: new Set() });
+        const R = (P.rooms[r.room] ||= { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, occ: 0, doneMins: [] });
         const day = (daily[r.date] ||= {});
-        const D = (day[r.prop] ||= { need: 0, done: 0, checkin: 0 });
+        const D = (day[r.prop] ||= { need: 0, done: 0, checkin: 0, occ: 0 });
         const MM = ((monthly[r.date.slice(0, 7)] ||= {})[r.prop] ||= { checkin: 0 });
         if (d.kind === '入住' || d.kind === '退入') MM.checkin++;
+        // 入住率：當晚有客人住（入住、退房→入住、續住）
+        P.days.add(r.date);
+        (MM.days ||= {})[r.date] = 1;
+        if (d.kind === '入住' || d.kind === '退入' || d.kind === '續住') { R.occ++; P.tot.occ++; D.occ++; MM.occ = (MM.occ || 0) + 1; }
         const add = (k) => { R[k]++; P.tot[k]++; };
         if (d.kind === '退房') add('checkout');
         if (d.kind === '退入') { add('turnover'); add('checkin'); D.checkin++; }
@@ -270,9 +274,11 @@ export async function onRequest(ctx) {
           if (d.doneAt) { const t = new Date(d.doneAt + 8 * 3600e3); const mins = t.getUTCHours() * 60 + t.getUTCMinutes(); R.doneMins.push(mins); P.tot.doneMins.push(mins); }
         }
       }
+      for (const mo2 in monthly) for (const pp in monthly[mo2]) monthly[mo2][pp].days = Object.keys(monthly[mo2][pp].days || {}).length;
       const avg = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
       for (const p in props) {
         props[p].tot.avgDone = avg(props[p].tot.doneMins); delete props[p].tot.doneMins;
+        props[p].tot.days = props[p].days.size; delete props[p].days;
         for (const r in props[p].rooms) { const R = props[p].rooms[r]; R.avgDone = avg(R.doneMins); delete R.doneMins; }
       }
       const { results: iss } = await env.DB.prepare('SELECT prop,room,type,status,created_at,resolved_at FROM issues WHERE date BETWEEN ? AND ?').bind(from, to).all();
