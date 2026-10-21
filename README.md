@@ -1,1 +1,23 @@
-# EROOM
+# E·ROOM 房務
+
+貳宿文旅、貳洋樓民宿共用的房務工作台。網址：https://eroom.yzprojecttw.com
+
+- `public/`：前端（單一 index.html，手機優先，可加到主畫面）
+- `functions/api/[[path]].js`：Cloudflare Pages Functions API
+- D1 資料庫 `eroom`（binding `DB`），資料表見 `schema.sql`，**只新增、不刪除**
+
+## API
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| GET | `/api/ping` | 健康檢查 |
+| GET | `/api/config?p=ersu\|eryanglou` | 房號 |
+| PUT | `/api/config` | 修改房號（管理員） |
+| GET | `/api/records?p=&d=YYYY-MM-DD` | 某天各房狀態 |
+| POST | `/api/records` | `{p,d,room,data}` 或 `{p,d,items:[{room,data}]}`，合併更新 |
+| GET | `/api/summary?from=&to=` | 區間統計 |
+| GET/PUT | `/api/docs` | 手冊、檢核、備品、房間資料（PUT 需管理員） |
+
+管理員：header `x-admin: <密碼>`，雜湊存在 D1 `settings.admin_hash`，不放在程式碼裡。
+
+## 資料格式
+`records.data`：`kind`（退房／退入／續住／入住）、`status`（todo 要掃／done 掃好了／空字串 不用掃）、`note`、`lateOut`、`earlyIn`、`checks`、`doneAt`、`updatedAt`

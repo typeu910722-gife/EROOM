@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1f2a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="房務">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>貳宿｜房務</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --linen:#eceeea; --sheet:#f8f9f6; --ink:#1f2a2e; --ink2:#55626a; --line:#d3d8d3;
+  --todo:#e0a21b; --prio:#c9402c; --done:#2e8b6a; --in:#3f6fb0; --none:#9aa3a6;
+  --r:10px; --plate:'Barlow Condensed','Noto Sans TC',sans-serif;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--linen);color:var(--ink);font:15px/1.6 'Noto Sans TC',system-ui,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--in);outline-offset:2px}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px calc(92px + var(--safe-b))}
+
+/* 頂部 */
+header{position:sticky;top:0;z-index:20;background:var(--ink);color:#f3f4f0;padding:calc(env(safe-area-inset-top,0px) + 10px) 0 10px}
+header .in{max-width:760px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:10px}
+.brand{font-family:var(--plate);font-weight:700;font-size:22px;letter-spacing:.06em}
+.props{display:flex;background:rgba(255,255,255,.1);border-radius:999px;padding:3px;margin-left:auto}
+.props button{border:0;background:none;color:#cfd6d6;padding:5px 14px;border-radius:999px;font-weight:500}
+.props button[aria-pressed=true]{background:#f3f4f0;color:var(--ink)}
+.lock{border:0;background:none;color:#cfd6d6;font-size:18px;padding:4px 6px;line-height:1}
+.lock.on{color:var(--todo)}
+
+/* 底部分頁 */
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:20;background:var(--sheet);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--safe-b)}
+nav.tabs button{flex:1;max-width:190px;border:0;background:none;padding:10px 0 12px;color:var(--ink2);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs svg{width:22px;height:22px}
+nav.tabs button[aria-current=page]{color:var(--ink);font-weight:700}
+nav.tabs button[aria-current=page] svg{stroke-width:2.2}
+
+section.page{display:none}
+section.page.on{display:block}
+h2{font-size:18px;margin:22px 0 10px}
+.muted{color:var(--ink2)}
+.small{font-size:13px}
+
+/* 日期列 */
+.dayrow{display:flex;align-items:center;gap:8px;margin:16px 0 4px}
+.dayrow .date{font-family:var(--plate);font-size:30px;font-weight:700;line-height:1}
+.dayrow .wk{color:var(--ink2);font-size:14px}
+.dayrow .today{margin-left:6px;font-size:12px;border:1px solid var(--ink);border-radius:999px;padding:1px 9px;background:none}
+.dayrow .nav{margin-left:auto;display:flex;gap:6px}
+.iconbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--sheet);display:grid;place-items:center;font-size:18px}
+
+.counts{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 12px;font-size:14px}
+.counts b{font-family:var(--plate);font-size:22px;margin-right:3px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px}
+
+/* 快速標記工具列 */
+.tools{position:sticky;top:58px;z-index:10;background:var(--linen);padding:8px 0 10px;margin:0 -16px;padding-left:16px;padding-right:16px;border-bottom:1px solid var(--line)}
+.tools .hint{font-size:13px;color:var(--ink2);margin-bottom:6px;min-height:20px}
+.tools .row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.tools .row::-webkit-scrollbar{display:none}
+.tool{flex:none;border:1.5px solid var(--line);background:var(--sheet);border-radius:999px;padding:6px 13px;font-weight:500;white-space:nowrap}
+.tool i{font-style:normal;display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.tool[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tool.text{margin-left:auto;border-style:dashed}
+
+/* 房號門牌 */
+.floor{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
+.floor .fl{width:26px;flex:none;font-family:var(--plate);font-weight:700;color:var(--ink2);font-size:15px;padding-top:12px;text-align:right}
+.grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.plate{position:relative;border:0;border-radius:var(--r);background:var(--sheet);box-shadow:inset 0 0 0 1px var(--line);padding:8px 9px 9px;text-align:left;min-height:84px;display:flex;flex-direction:column;justify-content:space-between}
+.plate .no{font-family:var(--plate);font-size:30px;font-weight:700;line-height:1}
+.plate .kd{font-size:12.5px;font-weight:700;line-height:1.3}
+.plate .st{font-size:12px;color:var(--ink2);line-height:1.3}
+.plate .tag{position:absolute;top:0;right:12px;width:14px;height:22px;border-radius:0 0 3px 3px}
+.plate.k-退房 .tag,.plate.k-續住.s-todo .tag{background:var(--todo)}
+.plate.k-退入 .tag{background:var(--prio)}
+.plate.k-入住 .tag{background:var(--in)}
+.plate.s-done{background:#e3efe9;box-shadow:inset 0 0 0 1.5px var(--done)}
+.plate.s-done .tag{background:var(--done)}
+.plate.s-done .no{color:var(--done)}
+.plate.s-todo{box-shadow:inset 0 0 0 1.5px var(--todo)}
+.plate.k-退入.s-todo{box-shadow:inset 0 0 0 2px var(--prio)}
+.plate .mini{position:absolute;bottom:8px;right:9px;font-size:11px;color:var(--ink2)}
+.plate.flash{animation:flash .5s}
+@keyframes flash{from{transform:scale(.94)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.plate.flash{animation:none}}
+
+.list{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.list .it{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
+.list .it:first-child{border-top:0}
+.list .it .no{font-family:var(--plate);font-size:24px;font-weight:700;width:52px}
+.list .it .ck{margin-left:auto;border:1.5px solid var(--done);color:var(--done);background:none;border-radius:999px;padding:4px 12px;font-weight:500}
+.list .it.done .ck{background:var(--done);color:#fff}
+.empty{padding:18px 14px;color:var(--ink2)}
+
+/* 抽屜 */
+.scrim{position:fixed;inset:0;background:rgba(20,28,30,.45);z-index:40;display:none}
+.scrim.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--sheet);border-radius:18px 18px 0 0;max-height:88vh;overflow:auto;transform:translateY(105%);transition:transform .22s ease;padding:8px 18px calc(22px + var(--safe-b))}
+.sheet.on{transform:none}
+@media (prefers-reduced-motion:reduce){.sheet{transition:none}}
+.sheet .grab{width:42px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 10px}
+.sheet h3{margin:0;font-family:var(--plate);font-size:40px;line-height:1}
+.sheet .sub{color:var(--ink2);font-size:13px;margin-bottom:12px}
+.lbl{font-size:13px;color:var(--ink2);margin:14px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{white-space:nowrap;flex:none;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-weight:500}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.c-done[aria-pressed=true]{background:var(--done);border-color:var(--done)}
+.chip.c-todo[aria-pressed=true]{background:var(--todo);border-color:var(--todo);color:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=time],input[type=text],input[type=password],textarea,select{width:100%;border:1.5px solid var(--line);border-radius:8px;background:#fff;padding:9px 11px}
+textarea{min-height:90px;resize:vertical;line-height:1.6}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px dashed var(--line)}
+.checks label:first-child{border-top:0}
+.checks input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--done);flex:none}
+.checks .prog{font-size:13px;color:var(--done);font-weight:700}
+.btnrow{display:flex;gap:8px;margin-top:18px}
+.btn{border:0;border-radius:10px;padding:11px 18px;font-weight:700;background:var(--ink);color:#fff}
+.btn.ghost{background:none;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.wide{flex:1}
+
+/* 手冊等內容 */
+.subtabs{display:flex;gap:6px;overflow-x:auto;margin:16px 0 6px;scrollbar-width:none}
+.subtabs::-webkit-scrollbar{display:none}
+.doc{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:6px 18px 16px}
+.doc h3{font-size:17px;margin:18px 0 6px}
+.doc h4{font-size:15px;margin:14px 0 4px}
+.doc ul,.doc ol{padding-left:20px;margin:6px 0}
+.doc li{margin:3px 0}
+.doc p{margin:8px 0}
+.meta{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px;color:var(--ink2)}
+.meta .btn{margin-left:auto;padding:7px 14px;font-size:14px}
+.draft{background:#fbf1d6;color:#7a5a07;border-radius:6px;padding:1px 8px;font-size:12px}
+
+.supply{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);margin-bottom:12px;overflow:hidden}
+.supply h3{margin:0;padding:12px 16px;font-size:16px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:8px}
+.supply h3 span{font-weight:400;color:var(--ink2);font-size:13px}
+.supply table{width:100%;border-collapse:collapse}
+.supply td{padding:8px 16px;border-top:1px solid var(--line);vertical-align:top}
+.supply tr:first-child td{border-top:0}
+.supply td.q{font-family:var(--plate);font-size:19px;font-weight:700;width:1%;white-space:nowrap;text-align:right}
+.supply td.n{color:var(--ink2);font-size:13px}
+
+.rcard{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line);background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left}
+.rcard:first-child{border-top:0}
+.rcard .no{font-family:var(--plate);font-size:26px;font-weight:700;width:52px;flex:none;line-height:1.1}
+.rcard .tp{font-weight:700}
+.rcard .nt{color:var(--ink2);font-size:13px}
+
+.toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:9px 8px 9px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
+.toast.on{display:flex}
+.toast button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:4px 12px}
+.toast.err{background:var(--prio);padding-right:18px}
+.offline{background:var(--prio);color:#fff;text-align:center;font-size:13px;padding:4px;display:none}
+.offline.on{display:block}
+</style>
+</head>
+<body>
+<header>
+  <div class="in">
+    <span class="brand">E·ROOM</span>
+    <div class="props" role="group" aria-label="館別">
+      <button data-prop="ersu">貳宿</button>
+      <button data-prop="eryanglou">貳洋樓</button>
+    </div>
+    <button class="lock" id="lockBtn" aria-label="管理員登入" title="管理員">🔒</button>
+  </div>
+</header>
+<div class="offline" id="offline">連不到伺服器，改動會在恢復連線後重送</div>
+
+<main class="wrap">
+  <!-- 今日 -->
+  <section class="page on" id="p-today">
+    <div class="dayrow">
+      <span class="date" id="dDate"></span><span class="wk" id="dWk"></span>
+      <button class="today" id="goToday" hidden>回今天</button>
+      <div class="nav">
+        <button class="iconbtn" id="prevDay" aria-label="前一天">‹</button>
+        <button class="iconbtn" id="nextDay" aria-label="後一天">›</button>
+      </div>
+    </div>
+    <div class="counts" id="counts"></div>
+
+    <div class="tools">
+      <div class="hint" id="toolHint">選一個標記，再點房號，可以連續點好幾間</div>
+      <div class="row" id="toolRow"></div>
+    </div>
+
+    <div id="floors"></div>
+
+    <h2>今日要掃</h2>
+    <div class="list" id="todoList"></div>
+  </section>
+
+  <!-- 手冊 -->
+  <section class="page" id="p-book">
+    <div class="subtabs" id="bookTabs"></div>
+    <div class="meta" id="bookMeta"></div>
+    <div class="doc" id="bookBody"></div>
+  </section>
+
+  <!-- 備品 -->
+  <section class="page" id="p-supply">
+    <div class="meta" id="supplyMeta" style="margin-top:16px"></div>
+    <div id="supplyBody"></div>
+  </section>
+
+  <!-- 房間 -->
+  <section class="page" id="p-rooms">
+    <div class="meta" id="roomsMeta" style="margin-top:16px"></div>
+    <div class="list" id="roomsBody"></div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="主選單">
+  <button data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>今日</button>
+  <button data-tab="book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
+  <button data-tab="supply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>備品</button>
+  <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>房間</button>
+</nav>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo">復原</button></div>
+
+<script>
+'use strict';
+const PROPS = { ersu: '貳宿', eryanglou: '貳洋樓' };
+// kind（存檔值）→ 顯示
+const KINDS = {
+  '退房': { label: '退房', color: 'var(--todo)', status: 'todo' },
+  '退入': { label: '退房→入住', color: 'var(--prio)', status: 'todo' },
+  '續住': { label: '續住', color: 'var(--todo)', status: 'todo' },
+  '入住': { label: '入住', color: 'var(--in)', status: '' },
+};
+const STATUS = { todo: '要掃', done: '掃好了', '': '不用掃' };
+const TOOLS = [
+  { id: '退房', kind: '退房', label: '退房', color: 'var(--todo)' },
+  { id: '退入', kind: '退入', label: '退房→入住', color: 'var(--prio)' },
+  { id: '續住', kind: '續住', label: '續住', color: 'var(--todo)' },
+  { id: '入住', kind: '入住', label: '入住', color: 'var(--in)' },
+  { id: 'done', status: 'done', label: '掃好了', color: 'var(--done)' },
+  { id: 'clear', clear: true, label: '清空', color: 'var(--none)' },
+];
+const WK = ['日', '一', '二', '三', '四', '五', '六'];
+
+// ---------- 預設內容（管理員未編輯前顯示為草稿）----------
+const DEFAULTS = {
+  handbook: { title: '員工守則', text:
+`### 上班
+- 到班先看「今日要掃」，退房→入住（紅色）的房間優先
+- 開始掃之前，在房號上確認狀態；掃完立刻按「掃好了」
+- 手機保持有電，有狀況先在房號備註寫下，再 LINE 通知管理者
+
+### 進出房間
+- 一律先敲門三下並出聲「房務」，等 10 秒再開門
+- 續住房若掛「請勿打擾」不進房，在備註寫「勿擾」
+- 客人在房內時不打掃，約時間再來
+
+### 客人物品
+- 不翻動、不丟棄客人的私人物品
+- 遺留物拍照、裝袋、寫房號與日期，交給管理者
+
+### 安全與清潔
+- 化學清潔劑不混用，打掃浴室時開抽風
+- 碰到針頭、碎玻璃等危險物，戴手套處理並回報
+- 備品不足或設備故障，在房號備註寫下並通知管理者` },
+  stay: { title: '續住整理', text:
+`### 每日必做
+1. 敲門確認無人、未掛勿擾
+2. 垃圾桶清空、換新垃圾袋
+3. 整理床鋪（床單不換，拉平、枕頭擺正）
+4. 浴室：擦乾洗手台與地面、補衛生紙
+5. 用過的毛巾收走，補上乾淨毛巾
+6. 補飲用水與茶包
+7. 客人物品保持原位，不收納、不移動
+
+### 第三晚起
+- 更換床單、枕套、被套（客人要求不換則跳過）
+
+### 不做的事
+- 不整理客人行李與衣物
+- 不丟客人放在桌上的任何東西，即使看起來像垃圾` },
+  checkout: { title: '退房整理', text:
+`### 流程
+1. 開窗通風、打開所有燈檢查
+2. 檢查遺留物（抽屜、床下、浴室、插座）
+3. 撤下全部床品與毛巾
+4. 清垃圾、換垃圾袋
+5. 浴室刷洗：馬桶、洗手台、淋浴間、鏡子
+6. 擦拭桌面、開關、遙控器、門把
+7. 鋪床、擺放毛巾
+8. 依備品清單補齊
+9. 吸地、拖地
+10. 關窗、關燈、冷氣關閉，按「掃好了」
+
+### 退房→入住（優先）
+- 下一組客人當天入住，先掃這幾間，入住時間前要完成` },
+  checklist: { stay: ['垃圾清空', '床鋪整理', '浴室擦乾', '換毛巾', '補衛生紙', '補水與茶包'],
+    checkout: ['檢查遺留物', '撤床品毛巾', '垃圾清空', '浴室刷洗', '擦拭桌面門把', '鋪床', '補備品', '吸地拖地', '關燈關冷氣'] },
+  supplies: { text:
+`## 雙人房
+- 大浴巾 | 2
+- 小毛巾 | 2
+- 腳踏墊 | 1
+- 拖鞋 | 2 雙
+- 牙刷組 | 2
+- 洗髮精、沐浴乳 | 各 1 | 不足半瓶就換
+- 衛生紙 | 1 捲 + 1 包
+- 礦泉水 | 2
+- 茶包 | 2
+- 垃圾袋 | 2
+
+## 四人房
+- 大浴巾 | 4
+- 小毛巾 | 4
+- 腳踏墊 | 1
+- 拖鞋 | 4 雙
+- 牙刷組 | 4
+- 洗髮精、沐浴乳 | 各 1
+- 衛生紙 | 2 捲 + 1 包
+- 礦泉水 | 4
+- 茶包 | 4
+- 垃圾袋 | 2` },
+  roominfo: { rooms: {} },
+};
+
+// ---------- 狀態 ----------
+const ls = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const ss = {
+  get(k) { try { return sessionStorage.getItem(k) || ''; } catch { return ''; } },
+  set(k, v) { try { v ? sessionStorage.setItem(k, v) : sessionStorage.removeItem(k); } catch {} },
+};
+const S = {
+  prop: ls.get('eroom.prop', 'ersu'),
+  date: todayStr(),
+  rooms: {},     // prop -> [rooms]
+  recs: {},      // `${prop}|${date}` -> {room: data}
+  docs: {},
+  tool: null,
+  tab: 'today',
+  bookKey: 'handbook',
+  admin: ss.get('eroom.admin'),
+  pending: ls.get('eroom.pending', []),
+};
+
+function todayStr(d = new Date()) {
+  const t = new Date(d.getTime() + 8 * 3600e3); // 台灣時間
+  return t.toISOString().slice(0, 10);
+}
+function addDays(s, n) { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const key = () => S.prop + '|' + S.date;
+const recs = () => (S.recs[key()] ||= {});
+
+// ---------- API ----------
+async function api(path, opts = {}) {
+  const headers = { 'content-type': 'application/json' };
+  if (S.admin) headers['x-admin'] = S.admin;
+  const r = await fetch('/api/' + path, { ...opts, headers });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error || ('HTTP ' + r.status)), { status: r.status });
+  return j;
+}
+async function loadRooms(p) {
+  const j = await api('config?p=' + p);
+  S.rooms[p] = j.config.rooms || [];
+}
+async function loadRecs(p = S.prop, d = S.date) {
+  const j = await api('records?p=' + p + '&d=' + d);
+  S.recs[p + '|' + d] = j.records || {};
+}
+async function loadDocs() {
+  const j = await api('docs');
+  S.docs = j.docs || {};
+}
+const doc = (k) => S.docs[k] || DEFAULTS[k];
+const isDraft = (k) => !S.docs[k];
+
+// 寫入：先改畫面，再排隊送出（離線也不會掉）
+let flushTimer = null;
+function queue(p, d, items) {
+  for (const it of items) {
+    const i = S.pending.findIndex((x) => x.p === p && x.d === d && x.room === it.room);
+    // 換成新物件（不要原地修改），送出中的那批才不會把這次的改動一起標成「已送出」
+    if (i >= 0) S.pending[i] = { ...S.pending[i], data: { ...S.pending[i].data, ...it.data } };
+    else S.pending.push({ p, d, room: it.room, data: it.data });
+  }
+  ls.set('eroom.pending', S.pending);
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(flush, 350);
+}
+let flushing = false;
+async function flush() {
+  if (flushing || !S.pending.length) return;
+  flushing = true;
+  const batch = S.pending.slice();
+  const groups = {};
+  for (const x of batch) (groups[x.p + '|' + x.d] ||= []).push({ room: x.room, data: x.data });
+  try {
+    for (const g in groups) {
+      const [p, d] = g.split('|');
+      await api('records', { method: 'POST', body: JSON.stringify({ p, d, items: groups[g] }) });
+    }
+    S.pending = S.pending.filter((x) => !batch.includes(x));
+    ls.set('eroom.pending', S.pending);
+    $('#offline').classList.remove('on');
+  } catch (e) {
+    $('#offline').classList.add('on');
+    setTimeout(flush, 8000);
+  } finally { flushing = false; }
+}
+addEventListener('online', flush);
+
+// ---------- 套用標記 ----------
+let undoStack = null;
+function apply(rooms, change, label) {
+  const R = recs();
+  const before = {};
+  const items = [];
+  for (const room of rooms) {
+    const cur = R[room] || {};
+    before[room] = { kind: cur.kind || '', status: cur.status || '', note: cur.note || '' };
+    let next;
+    if (change.full) next = { ...change.full };
+    else if (change.clear) next = { kind: '', status: '', note: '' };
+    else if (change.kind) next = { kind: change.kind, status: KINDS[change.kind].status };
+    else next = { ...change };
+    R[room] = { ...cur, ...next };
+    items.push({ room, data: next });
+  }
+  undoStack = { p: S.prop, d: S.date, before };
+  queue(S.prop, S.date, items);
+  renderToday(rooms);
+  toast((label || '已更新') + '：' + rooms.join('、'), true);
+}
+function undo() {
+  if (!undoStack) return;
+  const { p, d, before } = undoStack;
+  const R = S.recs[p + '|' + d] || {};
+  const items = [];
+  for (const room in before) { R[room] = { ...R[room], ...before[room] }; items.push({ room, data: before[room] }); }
+  queue(p, d, items);
+  undoStack = null;
+  renderToday();
+  toast('已復原');
+}
+
+// ---------- 今日畫面 ----------
+function floorOf(r) { return r.length >= 3 ? r.slice(0, -2) : r.slice(0, 1); }
+function needsClean(d) { return d && d.status === 'todo'; }
+function kindText(d) {
+  if (!d || !d.kind) return '';
+  if (d.kind === '續住') return d.status === 'todo' ? '續住要掃' : (d.status === 'done' ? '續住' : '續住不用掃');
+  if (d.kind === '退房') return '退房要掃';
+  if (d.kind === '退入') return '退房→入住';
+  return KINDS[d.kind]?.label || d.kind;
+}
+function renderToday(flashRooms = []) {
+  const d = new Date(S.date + 'T00:00:00Z');
+  $('#dDate').textContent = (d.getUTCMonth() + 1) + '/' + d.getUTCDate();
+  $('#dWk').textContent = '週' + WK[d.getUTCDay()];
+  $('#goToday').hidden = S.date === todayStr();
+
+  const rooms = S.rooms[S.prop] || [];
+  const R = recs();
+  let todo = 0, done = 0, inn = 0, prio = 0;
+  for (const r of rooms) {
+    const x = R[r]; if (!x) continue;
+    if (x.status === 'todo') { todo++; if (x.kind === '退入') prio++; }
+    if (x.status === 'done') done++;
+    if (x.kind === '入住' || x.kind === '退入') inn++;
+  }
+  $('#counts').innerHTML =
+    `<span><i class="dot" style="background:var(--todo)"></i><b>${todo}</b>要掃${prio ? `（優先 ${prio}）` : ''}</span>` +
+    `<span><i class="dot" style="background:var(--done)"></i><b>${done}</b>掃好了</span>` +
+    `<span><i class="dot" style="background:var(--in)"></i><b>${inn}</b>今晚入住</span>`;
+
+  // 依樓層
+  const fl = {};
+  for (const r of rooms) (fl[floorOf(r)] ||= []).push(r);
+  $('#floors').innerHTML = rooms.length ? Object.keys(fl).map((f) =>
+    `<div class="floor"><div class="fl">${esc(f)}F</div><div class="grid">${fl[f].map((r) => plate(r, R[r], flashRooms.includes(r))).join('')}</div></div>`
+  ).join('') : `<p class="empty">這館還沒有房號。到「房間」分頁設定（需要管理員）。</p>`;
+
+  // 要掃清單：優先 → 退房 → 續住
+  const order = { '退入': 0, '退房': 1, '續住': 2 };
+  const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && R[r].kind !== '入住')
+    .sort((a, b) => (R[a].status === 'done') - (R[b].status === 'done') || (order[R[a].kind] ?? 3) - (order[R[b].kind] ?? 3) || a.localeCompare(b));
+  $('#todoList').innerHTML = list.length ? list.map((r) => {
+    const x = R[r];
+    const extra = [x.lateOut && '延後退房 ' + x.lateOut, x.earlyIn && '提早入住 ' + x.earlyIn, x.note].filter(Boolean).join('・');
+    return `<div class="it ${x.status === 'done' ? 'done' : ''}"><span class="no">${esc(r)}</span>
+      <div><div style="font-weight:700;color:${x.kind === '退入' ? 'var(--prio)' : 'inherit'}">${esc(kindText(x))}</div>${extra ? `<div class="small muted">${esc(extra)}</div>` : ''}</div>
+      <button class="ck" data-done="${esc(r)}">${x.status === 'done' ? '✓ 掃好了' : '掃好了'}</button></div>`;
+  }).join('') : `<div class="empty">今天沒有要掃的房間。用上面的標記點房號就能加入。</div>`;
+}
+function plate(r, x, flash) {
+  x = x || {};
+  const cls = ['plate', x.kind ? 'k-' + x.kind : '', x.status ? 's-' + x.status : '', flash ? 'flash' : ''].join(' ');
+  const st = x.kind ? (x.status === 'done' ? '✓ 掃好了' : (x.kind === '入住' ? '' : STATUS[x.status || ''])) : '空房';
+  const mini = [x.lateOut && '晚退', x.earlyIn && '早入', x.note && '✎'].filter(Boolean).join(' ');
+  return `<button class="${cls}" data-room="${esc(r)}" aria-label="${esc(r)} ${esc(kindText(x) || '空房')}">
+    ${x.kind ? '<span class="tag"></span>' : ''}<span class="no">${esc(r)}</span>
+    <span><span class="kd">${esc(x.kind ? (KINDS[x.kind]?.label || x.kind) : '')}</span><br><span class="st">${esc(st)}</span></span>
+    ${mini ? `<span class="mini">${esc(mini)}</span>` : ''}</button>`;
+}
+
+function renderTools() {
+  $('#toolRow').innerHTML = TOOLS.map((t) =>
+    `<button class="tool" data-tool="${t.id}" aria-pressed="${S.tool === t.id}"><i style="background:${t.color}"></i>${t.label}</button>`
+  ).join('') + `<button class="tool text" id="textBtn">貼上文字</button>`;
+  const t = TOOLS.find((x) => x.id === S.tool);
+  $('#toolHint').textContent = t ? `點房號標成「${t.label}」，再點一次這個按鈕結束` : '選一個標記，再點房號，可以連續點好幾間';
+}
+
+// ---------- 房間抽屜 ----------
+function openRoom(room) {
+  const R = recs();
+  const x = { ...(R[room] || {}) };
+  const info = (doc('roominfo').rooms || {})[S.prop + ':' + room] || {};
+  const cl = doc('checklist');
+  const draw = () => {
+    const list = x.kind === '續住' ? cl.stay : (x.kind === '退房' || x.kind === '退入') ? cl.checkout : [];
+    const checks = new Set(x.checks || []);
+    $('#sheetBody').innerHTML = `
+      <h3>${esc(room)}</h3>
+      <div class="sub">${esc(PROPS[S.prop])}・${esc(S.date.slice(5).replace('-', '/'))}${info.type ? '・' + esc(info.type) : ''}${info.note ? '<br>' + esc(info.note) : ''}</div>
+      <div class="lbl">今天這間</div>
+      <div class="chips">${Object.keys(KINDS).map((k) => `<button class="chip" data-k="${k}" aria-pressed="${x.kind === k}">${KINDS[k].label}</button>`).join('')}
+        <button class="chip" data-k="" aria-pressed="${!x.kind}">空房</button></div>
+      ${x.kind ? `<div class="lbl">打掃</div>
+      <div class="chips">${['todo', 'done', ''].map((s) => `<button class="chip c-${s || 'none'}" data-s="${s}" aria-pressed="${(x.status || '') === s}">${STATUS[s]}</button>`).join('')}</div>` : ''}
+      ${list.length ? `<div class="lbl">檢核 <span class="checks"><span class="prog">${[...checks].filter((i) => i < list.length).length}/${list.length}</span></span></div>
+      <div class="checks">${list.map((t, i) => `<label><input type="checkbox" data-c="${i}" ${checks.has(i) ? 'checked' : ''}>${esc(t)}</label>`).join('')}</div>` : ''}
+      ${x.kind ? `<div class="two" style="margin-top:4px">
+        <div><div class="lbl">延後退房</div><input type="time" id="fLate" value="${esc(x.lateOut || '')}"></div>
+        <div><div class="lbl">提早入住</div><input type="time" id="fEarly" value="${esc(x.earlyIn || '')}"></div></div>` : ''}
+      <div class="lbl">備註（勿擾、缺備品、故障、遺留物⋯）</div>
+      <textarea id="fNote" placeholder="例如：浴室燈不亮">${esc(x.note || '')}</textarea>
+      <div class="btnrow"><button class="btn ghost" id="sClose">取消</button><button class="btn wide" id="sSave">儲存</button></div>`;
+  };
+  draw();
+  const body = $('#sheetBody');
+  body.onclick = (e) => {
+    const k = e.target.closest('[data-k]');
+    if (k) { x.kind = k.dataset.k; x.status = x.kind ? KINDS[x.kind].status : ''; if (!x.kind) { x.lateOut = ''; x.earlyIn = ''; } keepFields(); return draw(); }
+    const s = e.target.closest('[data-s]');
+    if (s) { x.status = s.dataset.s; keepFields(); return draw(); }
+    if (e.target.id === 'sClose') return closeSheet();
+    if (e.target.id === 'sSave') {
+      keepFields();
+      const data = { kind: x.kind || '', status: x.status || '', note: x.note || '', lateOut: x.lateOut || '', earlyIn: x.earlyIn || '', checks: x.checks || [] };
+      apply([room], { full: data }, '已儲存');
+      closeSheet();
+    }
+  };
+  body.onchange = (e) => {
+    if (e.target.dataset.c != null) {
+      const set = new Set(x.checks || []);
+      const i = +e.target.dataset.c;
+      e.target.checked ? set.add(i) : set.delete(i);
+      x.checks = [...set].sort((a, b) => a - b);
+      keepFields(); draw();
+    }
+  };
+  function keepFields() {
+    const n = $('#fNote'), l = $('#fLate'), er = $('#fEarly');
+    if (n) x.note = n.value; if (l) x.lateOut = l.value; if (er) x.earlyIn = er.value;
+  }
+  openSheet();
+}
+function openSheet() { $('#toast').classList.remove('on'); $('#scrim').classList.add('on'); $('#sheet').classList.add('on'); }
+function closeSheet() { $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); }
+$('#scrim').onclick = closeSheet;
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
+// ---------- 貼上文字快速輸入 ----------
+const WORDS = [
+  [/退房?\s*(→|->|接|轉)\s*入住?|退入|退房入住/, { kind: '退入' }],
+  [/續住?/, { kind: '續住' }],
+  [/退房?/, { kind: '退房' }],
+  [/入住?/, { kind: '入住' }],
+  [/掃好了?|完成|好了/, { status: 'done' }],
+  [/不用掃|免掃/, { status: '' }],
+  [/清空|清除|取消/, { clear: true }],
+];
+function parseText(text, rooms) {
+  const out = []; let cur = null;
+  const set = new Set(rooms.map((r) => r.toUpperCase()));
+  const tokens = text.replace(/[，,、；;：:\n\/]+/g, ' ').split(/\s+/).filter(Boolean);
+  for (let tk of tokens) {
+    // 「退房201」這種黏在一起的也拆開
+    const m = tk.match(/^([^\dA-Za-z]+)?([\dA-Za-z]+)?$/);
+    const word = m ? m[1] : tk, num = m ? m[2] : null;
+    if (word) { const w = WORDS.find(([re]) => re.test(word)); if (w) cur = w[1]; }
+    if (num && set.has(num.toUpperCase()) && cur) out.push({ room: rooms.find((r) => r.toUpperCase() === num.toUpperCase()), change: cur });
+  }
+  return out;
+}
+function openText() {
+  const rooms = S.rooms[S.prop] || [];
+  $('#sheetBody').innerHTML = `
+    <h3 style="font-size:24px;font-family:inherit">貼上文字</h3>
+    <div class="sub">寫「標記＋房號」，一次標好多間。套用到 ${esc(PROPS[S.prop])} ${esc(S.date.slice(5).replace('-', '/'))}。</div>
+    <textarea id="tIn" style="min-height:130px" placeholder="退房 201 203 205&#10;退入 301&#10;續住 502 503&#10;入住 306"></textarea>
+    <div class="lbl">會套用</div><div id="tPrev" class="small muted">還沒有辨識到房號</div>
+    <div class="btnrow"><button class="btn ghost" id="tClose">取消</button><button class="btn wide" id="tGo" disabled>套用</button></div>`;
+  const prev = () => {
+    const res = parseText($('#tIn').value, rooms);
+    $('#tGo').disabled = !res.length;
+    $('#tPrev').innerHTML = res.length ? res.map((r) => `${esc(r.room)}→${esc(r.change.clear ? '清空' : r.change.kind ? KINDS[r.change.kind].label : STATUS[r.change.status])}`).join('　') : '還沒有辨識到房號';
+    return res;
+  };
+  $('#tIn').oninput = prev;
+  $('#tClose').onclick = closeSheet;
+  $('#tGo').onclick = () => {
+    const res = prev();
+    const R = recs(); const before = {}; const items = [];
+    for (const { room, change } of res) {
+      const cur = R[room] || {};
+      before[room] = before[room] || { kind: cur.kind || '', status: cur.status || '', note: cur.note || '' };
+      const next = change.clear ? { kind: '', status: '', note: '' } : change.kind ? { kind: change.kind, status: KINDS[change.kind].status } : { ...change };
+      R[room] = { ...cur, ...next };
+      items.push({ room, data: next });
+    }
+    undoStack = { p: S.prop, d: S.date, before };
+    queue(S.prop, S.date, items);
+    closeSheet(); renderToday(res.map((r) => r.room));
+    toast(`已套用 ${new Set(res.map((r) => r.room)).size} 間`, true);
+  };
+  openSheet();
+  setTimeout(() => $('#tIn').focus(), 250);
+}
+
+// ---------- 簡易 markdown ----------
+function md(src) {
+  const lines = String(src || '').split('\n'); let h = ''; let list = null;
+  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const close = () => { if (list) { h += `</${list}>`; list = null; } };
+  for (const ln of lines) {
+    let m;
+    if ((m = ln.match(/^###\s+(.*)/))) { close(); h += `<h3>${inline(m[1])}</h3>`; }
+    else if ((m = ln.match(/^####\s+(.*)/))) { close(); h += `<h4>${inline(m[1])}</h4>`; }
+    else if ((m = ln.match(/^\s*[-*]\s+(.*)/))) { if (list !== 'ul') { close(); h += '<ul>'; list = 'ul'; } h += `<li>${inline(m[1])}</li>`; }
+    else if ((m = ln.match(/^\s*\d+[.、]\s*(.*)/))) { if (list !== 'ol') { close(); h += '<ol>'; list = 'ol'; } h += `<li>${inline(m[1])}</li>`; }
+    else if (ln.trim()) { close(); h += `<p>${inline(ln)}</p>`; }
+    else close();
+  }
+  close(); return h;
+}
+const when = (k) => S.docs[k]?.updatedAt ? new Date(S.docs[k].updatedAt).toLocaleDateString('zh-TW') + ' 更新' : '';
+function metaBar(k, editLabel = '編輯') {
+  return `${isDraft(k) ? '<span class="draft">草稿・待管理員確認</span>' : `<span>${when(k)}</span>`}
+    ${S.admin ? `<button class="btn" data-edit="${k}">${editLabel}</button>` : ''}`;
+}
+
+// ---------- 手冊 ----------
+const BOOK = [['handbook', '員工守則'], ['stay', '續住整理'], ['checkout', '退房整理'], ['checklist', '檢核清單']];
+function renderBook() {
+  $('#bookTabs').innerHTML = BOOK.map(([k, t]) => `<button class="chip" data-book="${k}" aria-pressed="${S.bookKey === k}">${t}</button>`).join('');
+  const k = S.bookKey;
+  $('#bookMeta').innerHTML = metaBar(k);
+  if (k === 'checklist') {
+    const c = doc('checklist');
+    $('#bookBody').innerHTML = `<p class="muted small">打開房號時會出現的勾選項目。</p><h3>續住</h3><ol>${c.stay.map((x) => `<li>${esc(x)}</li>`).join('')}</ol><h3>退房、退房→入住</h3><ol>${c.checkout.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
+  } else $('#bookBody').innerHTML = md(doc(k).text);
+}
+
+// ---------- 備品 ----------
+function parseSupplies(text) {
+  const groups = []; let g = null;
+  for (const ln of String(text || '').split('\n')) {
+    let m;
+    if ((m = ln.match(/^##\s+(.*)/))) { g = { name: m[1].trim(), items: [] }; groups.push(g); }
+    else if ((m = ln.match(/^\s*[-*]\s+(.*)/))) {
+      if (!g) { g = { name: '通用', items: [] }; groups.push(g); }
+      const [name, qty = '', note = ''] = m[1].split('|').map((s) => s.trim());
+      g.items.push({ name, qty, note });
+    }
+  }
+  return groups;
+}
+function renderSupply() {
+  $('#supplyMeta').innerHTML = metaBar('supplies');
+  const groups = parseSupplies(doc('supplies').text);
+  const info = doc('roominfo').rooms || {};
+  $('#supplyBody').innerHTML = groups.map((g) => {
+    const rooms = Object.keys(info).filter((k) => info[k].type === g.name).map((k) => k.split(':')[1]);
+    return `<div class="supply"><h3>${esc(g.name)}${rooms.length ? `<span>${esc(rooms.join(' '))}</span>` : ''}</h3><table>${g.items.map((i) =>
+      `<tr><td>${esc(i.name)}${i.note ? `<div class="n">${esc(i.note)}</div>` : ''}</td><td class="q">${esc(i.qty)}</td></tr>`).join('')}</table></div>`;
+  }).join('') || '<p class="empty">還沒有備品清單。</p>';
+}
+
+// ---------- 房間 ----------
+function renderRooms() {
+  const rooms = S.rooms[S.prop] || [];
+  const info = doc('roominfo').rooms || {};
+  $('#roomsMeta').innerHTML = `<span>${esc(PROPS[S.prop])}・${rooms.length} 間</span>${S.admin ? '<button class="btn" id="editRoomList">修改房號</button>' : ''}`;
+  $('#roomsBody').innerHTML = rooms.map((r) => {
+    const i = info[S.prop + ':' + r] || {};
+    return `<button class="rcard" data-rinfo="${esc(r)}" ${S.admin ? '' : 'disabled'}><span class="no">${esc(r)}</span>
+      <span><span class="tp">${esc(i.type || (S.admin ? '點一下填房型' : '未設定房型'))}</span>${i.beds ? `<span class="muted">・${esc(i.beds)}</span>` : ''}
+      ${i.note ? `<div class="nt">${esc(i.note)}</div>` : ''}</span></button>`;
+  }).join('') || '<div class="empty">還沒有房號。</div>';
+}
+function openRoomInfo(r) {
+  const all = { ...(doc('roominfo').rooms || {}) };
+  const i = all[S.prop + ':' + r] || {};
+  const types = parseSupplies(doc('supplies').text).map((g) => g.name);
+  $('#sheetBody').innerHTML = `<h3>${esc(r)}</h3><div class="sub">${esc(PROPS[S.prop])}・房間資料</div>
+    <div class="lbl">房型（對應備品清單）</div>
+    <select id="iType"><option value="">未設定</option>${types.map((t) => `<option ${i.type === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+    <div class="lbl">床型</div><input type="text" id="iBeds" value="${esc(i.beds || '')}" placeholder="例如：雙人床 1">
+    <div class="lbl">注意事項（員工打開房號時會看到）</div><textarea id="iNote" placeholder="例如：熱水器開關在浴室門後">${esc(i.note || '')}</textarea>
+    <div class="btnrow"><button class="btn ghost" id="iClose">取消</button><button class="btn wide" id="iSave">儲存</button></div>`;
+  $('#iClose').onclick = closeSheet;
+  $('#iSave').onclick = async () => {
+    all[S.prop + ':' + r] = { type: $('#iType').value, beds: $('#iBeds').value.trim(), note: $('#iNote').value.trim() };
+    await saveDoc('roominfo', { rooms: all });
+    closeSheet(); renderRooms();
+  };
+  openSheet();
+}
+function openRoomList() {
+  const rooms = S.rooms[S.prop] || [];
+  $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">修改房號</h3><div class="sub">${esc(PROPS[S.prop])}。用空白或逗號分隔。刪掉的房號不會刪除它的歷史紀錄。</div>
+    <textarea id="rlIn" style="min-height:120px">${esc(rooms.join(' '))}</textarea>
+    <div class="btnrow"><button class="btn ghost" id="rlClose">取消</button><button class="btn wide" id="rlSave">儲存房號</button></div>`;
+  $('#rlClose').onclick = closeSheet;
+  $('#rlSave').onclick = async () => {
+    const list = [...new Set($('#rlIn').value.split(/[\s,，、]+/).map((s) => s.trim()).filter(Boolean))];
+    try {
+      const j = await api('config', { method: 'PUT', body: JSON.stringify({ p: S.prop, config: { rooms: list } }) });
+      S.rooms[S.prop] = j.config.rooms; closeSheet(); renderAll(); toast('房號已儲存');
+    } catch (e) { toast(e.message, false, true); }
+  };
+  openSheet();
+}
+
+// ---------- 編輯內容（管理員）----------
+function openEdit(k) {
+  let val, help;
+  if (k === 'checklist') {
+    const c = doc('checklist');
+    val = '## 續住\n' + c.stay.join('\n') + '\n\n## 退房\n' + c.checkout.join('\n');
+    help = '每行一個項目。「## 續住」「## 退房」底下各自一組。';
+  } else if (k === 'supplies') {
+    val = doc(k).text; help = '「## 房型名稱」開新的一組；每行「- 品項 | 數量 | 備註」。房型名稱會出現在「房間」分頁的下拉選單。';
+  } else {
+    val = doc(k).text; help = '「### 標題」、「- 項目」、「1. 步驟」、「**粗體**」。';
+  }
+  const title = (BOOK.find((b) => b[0] === k) || [k, '備品清單'])[1];
+  $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">編輯${esc(title)}</h3><div class="sub">${esc(help)}</div>
+    <textarea id="eIn" style="min-height:46vh;font-size:14px">${esc(val)}</textarea>
+    <div class="btnrow"><button class="btn ghost" id="eClose">取消</button><button class="btn wide" id="eSave">儲存並發布</button></div>`;
+  $('#eClose').onclick = closeSheet;
+  $('#eSave').onclick = async () => {
+    const v = $('#eIn').value;
+    let data;
+    if (k === 'checklist') {
+      data = { stay: [], checkout: [] }; let cur = null;
+      for (const ln of v.split('\n')) {
+        const t = ln.trim(); if (!t) continue;
+        if (/^##/.test(t)) cur = /續/.test(t) ? 'stay' : 'checkout';
+        else if (cur) data[cur].push(t.replace(/^[-*\d.、\s]+/, ''));
+      }
+    } else data = { text: v };
+    if (await saveDoc(k, data)) { closeSheet(); renderAll(); }
+  };
+  openSheet();
+}
+async function saveDoc(k, data) {
+  try {
+    await api('docs', { method: 'PUT', body: JSON.stringify({ k, data }) });
+    S.docs[k] = { ...data, updatedAt: Date.now() };
+    toast('已儲存並發布'); return true;
+  } catch (e) {
+    if (e.status === 401) { S.admin = ''; ss.set('eroom.admin', ''); renderLock(); }
+    toast(e.message, false, true); return false;
+  }
+}
+
+// ---------- 管理員 ----------
+function renderLock() { const b = $('#lockBtn'); b.textContent = S.admin ? '🔓' : '🔒'; b.classList.toggle('on', !!S.admin); b.setAttribute('aria-label', S.admin ? '管理員已登入，點一下登出' : '管理員登入'); }
+$('#lockBtn').onclick = () => {
+  if (S.admin) { S.admin = ''; ss.set('eroom.admin', ''); renderLock(); renderAll(); toast('已登出管理員'); return; }
+  $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">管理員登入</h3><div class="sub">登入後可以編輯手冊、備品、房號與房間資料。員工不用登入。</div>
+    <input type="password" id="aPw" autocomplete="current-password" placeholder="管理員密碼">
+    <div class="btnrow"><button class="btn ghost" id="aClose">取消</button><button class="btn wide" id="aGo">登入</button></div>`;
+  $('#aClose').onclick = closeSheet;
+  const go = async () => {
+    const pw = $('#aPw').value; if (!pw) return;
+    S.admin = pw;
+    try { await api('admin', { method: 'POST' }); ss.set('eroom.admin', pw); closeSheet(); renderLock(); renderAll(); toast('管理員已登入'); }
+    catch (e) { S.admin = ''; toast(e.message, false, true); }
+  };
+  $('#aGo').onclick = go; $('#aPw').onkeydown = (e) => e.key === 'Enter' && go();
+  openSheet(); setTimeout(() => $('#aPw').focus(), 250);
+};
+
+// ---------- toast ----------
+let toastT;
+function toast(msg, canUndo, err) {
+  const t = $('#toast');
+  $('#toastMsg').textContent = msg;
+  $('#toastUndo').style.display = canUndo ? '' : 'none';
+  t.classList.toggle('err', !!err);
+  t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), canUndo ? 5000 : 2400);
+}
+$('#toastUndo').onclick = () => { $('#toast').classList.remove('on'); undo(); };
+
+// ---------- 事件 ----------
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  const tab = t.closest('[data-tab]');
+  if (tab) { $('#toast').classList.remove('on'); S.tab = tab.dataset.tab; document.querySelectorAll('nav.tabs button').forEach((b) => b.toggleAttribute('aria-current', false)); tab.setAttribute('aria-current', 'page'); document.querySelectorAll('section.page').forEach((s) => s.classList.toggle('on', s.id === 'p-' + S.tab)); renderAll(); scrollTo(0, 0); return; }
+  const pb = t.closest('[data-prop]');
+  if (pb) { selectProp(pb.dataset.prop); return; }
+  const tool = t.closest('[data-tool]');
+  if (tool) { S.tool = S.tool === tool.dataset.tool ? null : tool.dataset.tool; renderTools(); return; }
+  if (t.closest('#textBtn')) { openText(); return; }
+  const pl = t.closest('.plate');
+  if (pl) {
+    const room = pl.dataset.room;
+    const tl = TOOLS.find((x) => x.id === S.tool);
+    if (tl) apply([room], tl.clear ? { clear: true } : tl.kind ? { kind: tl.kind } : { status: tl.status }, tl.label);
+    else openRoom(room);
+    return;
+  }
+  const dn = t.closest('[data-done]');
+  if (dn) { const r = dn.dataset.done; const cur = recs()[r] || {}; apply([r], { status: cur.status === 'done' ? 'todo' : 'done' }, cur.status === 'done' ? '改回要掃' : '掃好了'); return; }
+  const bk = t.closest('[data-book]');
+  if (bk) { S.bookKey = bk.dataset.book; renderBook(); return; }
+  const ed = t.closest('[data-edit]');
+  if (ed) { openEdit(ed.dataset.edit); return; }
+  const ri = t.closest('[data-rinfo]');
+  if (ri && S.admin) { openRoomInfo(ri.dataset.rinfo); return; }
+  if (t.closest('#editRoomList')) { openRoomList(); return; }
+});
+$('#prevDay').onclick = () => shiftDate(-1);
+$('#nextDay').onclick = () => shiftDate(1);
+$('#goToday').onclick = () => { S.date = todayStr(); refresh(); };
+async function shiftDate(n) { S.date = addDays(S.date, n); refresh(); }
+async function selectProp(p) {
+  S.prop = p; ls.set('eroom.prop', p);
+  document.querySelectorAll('[data-prop]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.prop === p));
+  if (!S.rooms[p]) await loadRooms(p).catch(() => {});
+  refresh();
+}
+async function refresh() {
+  renderAll();
+  try { await loadRecs(); $('#offline').classList.remove('on'); } catch { $('#offline').classList.add('on'); }
+  renderAll();
+}
+function renderAll() {
+  if (S.tab === 'today') { renderTools(); renderToday(); }
+  if (S.tab === 'book') renderBook();
+  if (S.tab === 'supply') renderSupply();
+  if (S.tab === 'rooms') renderRooms();
+}
+// 回到畫面時更新（別人改過的會同步進來）
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.tab === 'today' && !S.pending.length) refresh(); });
+setInterval(() => { if (!document.hidden && S.tab === 'today' && !S.pending.length && !$('#sheet').classList.contains('on')) loadRecs().then(() => renderToday()).catch(() => {}); }, 30000);
+
+// ---------- 啟動 ----------
+(async function init() {
+  renderLock();
+  document.querySelectorAll('[data-prop]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.prop === S.prop));
+  renderAll();
+  await Promise.all([loadRooms('ersu'), loadRooms('eryanglou'), loadDocs()].map((p) => p.catch(() => {})));
+  if (S.admin) api('admin', { method: 'POST' }).catch(() => { S.admin = ''; ss.set('eroom.admin', ''); renderLock(); });
+  flush();
+  refresh();
+})();
+</script>
+</body>
+</html>

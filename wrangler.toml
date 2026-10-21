@@ -1,0 +1,8 @@
+name = "eroom"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eroom"
+database_id = "eb31d276-1eb2-41e8-a36e-8356419b8374"
