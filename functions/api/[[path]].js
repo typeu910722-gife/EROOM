@@ -301,28 +301,27 @@ function floorOf(r) { return r.length >= 3 ? r.slice(0, -2) : r.slice(0, 1); }
 
 async function dailyText(env, date, props = PROPS) {
   const d = new Date(date + 'T00:00:00Z');
-  const lines = [`🧹 今日要掃｜${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK[d.getUTCDay()]}）`];
+  const lines = [`🧹${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK[d.getUTCDay()]}）`];
   for (const p of props) {
     const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(p).first();
     const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
     const { results } = await env.DB.prepare('SELECT room,data FROM records WHERE prop=? AND date=?').bind(p, date).all();
     const R = {}; for (const r of results) R[r.room] = JSON.parse(r.data);
     const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && KIND_LABEL[R[r].kind]);
-    const prio = list.filter((r) => R[r].kind === '退入').length;
-    lines.push('', `【${PROP_NAME[p]}】${list.length ? list.length + ' 間' + (prio ? `（優先 ${prio}）` : '') : '今天不用掃'}`);
+    const prioRooms = list.filter((r) => R[r].kind === '退入');
+    lines.push(`【${PROP_NAME[p]}】${list.length ? list.length + ' 間' + (prioRooms.length ? `（優先 ${prioRooms.length}）` : '') : '今天不用掃'}`);
     const fl = {};
     for (const r of list) (fl[floorOf(r)] ||= []).push(r);
     const order = { '退入': 0, '退房': 1, '續住': 2 };
     for (const f of Object.keys(fl)) {
-      const items = fl[f].sort((a, b) => order[R[a].kind] - order[R[b].kind] || rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
+      lines.push(fl[f].sort((a, b) => order[R[a].kind] - order[R[b].kind] || rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
         const x = R[r];
         const extra = [x.lateOut && '延退' + x.lateOut, x.earlyIn && '早入' + x.earlyIn, x.note].filter(Boolean).join(' ');
-        return `${r}${x.kind === '退入' ? '⭐' : ''}${extra ? `（${extra}）` : ''}`;
-      });
-      lines.push(`${f}F　${items.join('、')}`);
+        return r + (extra ? `（${extra}）` : '');
+      }).join('、'));
     }
+    if (prioRooms.length) lines.push('⭐今日入住優先：' + prioRooms.sort((a, b) => rooms.indexOf(a) - rooms.indexOf(b)).join('.'));
   }
-  lines.push('', '⭐ 優先：當天有客人入住', '出入房間請先敲門');
   return lines.join('\n').slice(0, 4900);
 }
 
