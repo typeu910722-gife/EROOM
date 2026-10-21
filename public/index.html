@@ -862,7 +862,7 @@ async function renderLine() {
       <p class="muted small" style="margin-top:0">在群組裡傳「綁定貳宿」或「綁定貳洋樓」就會自動綁好，也可以在這裡選。每個群組只會收到自己那一館。</p>
       ${Object.keys(PROPS).map((p) => `<div class="lbl">${PROPS[p]}</div>
         <select data-lnp="${p}"><option value="">不傳送</option>${gids.map((g) => `<option value="${esc(g)}" ${c.targets[p] === g ? 'selected' : ''}>${esc(gname(g))}</option>`).join('')}</select>
-        <p class="muted small" style="margin:4px 0 0">上次自動傳送：${esc(c.last[p] || '還沒有')}　<a href="#" data-lntest="${p}" style="color:var(--gold)">傳一則測試</a></p>`).join('')}
+        <p class="muted small" style="margin:4px 0 0">上次自動傳送：${esc(c.last[p] || '還沒有')}　<a href="#" data-lntest="${p}" style="color:var(--gold)">傳一則今日打掃</a></p>`).join('')}
       <label class="sitem" style="margin-top:12px"><input type="checkbox" id="lnOn" ${c.enabled ? 'checked' : ''}> 每天 10:50 自動傳送</label>
       <div class="btnrow"><button class="btn wide" id="lnSave2">儲存推播設定</button></div>
     </div>
@@ -879,7 +879,7 @@ async function renderLine() {
   };
   w.querySelectorAll('[data-lntest]').forEach((a) => (a.onclick = async (e) => {
     e.preventDefault();
-    try { await api('line/test', { method: 'POST', body: JSON.stringify({ p: a.dataset.lntest }) }); toast('已傳到' + PROPS[a.dataset.lntest] + '群組'); } catch (err) { toast(err.message, false, true); }
+    try { await api('line/test', { method: 'POST', body: JSON.stringify({ p: a.dataset.lntest }) }); toast('已把今日打掃傳到' + PROPS[a.dataset.lntest] + '群組'); } catch (err) { toast(err.message, false, true); }
   }));
 }
 
