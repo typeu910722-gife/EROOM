@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#1f2a2e">
+<meta name="theme-color" content="#12110e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="房務">
@@ -14,219 +14,242 @@
 <title>貳宿｜房務</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --linen:#eceeea; --sheet:#f8f9f6; --ink:#1f2a2e; --ink2:#55626a; --line:#d3d8d3;
-  --todo:#e0a21b; --prio:#c9402c; --done:#2e8b6a; --in:#3f6fb0; --none:#9aa3a6;
-  --r:10px; --plate:'Barlow Condensed','Noto Sans TC',sans-serif;
-  --safe-b:env(safe-area-inset-bottom,0px);
+  --bg:#12110e; --panel:#1f1c17; --panel2:#27231c; --ink:#efe8da; --mute:#9b927f; --faint:#5f584c;
+  --gold:#c9a96a; --gold2:#e4cb93; --line:rgba(201,169,106,.22); --line2:rgba(239,232,218,.08);
+  --todo:#c9a96a; --prio:#e08a6d; --done:#8fb08a; --in:#8ea7c4; --none:#5f584c;
+  --serif:"Cormorant Garamond","Noto Serif TC",serif; --tc:"Noto Serif TC",serif; --sans:"Noto Sans TC",system-ui,sans-serif;
+  --r:12px; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--linen);color:var(--ink);font:15px/1.6 'Noto Sans TC',system-ui,sans-serif}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--sans)}
+body{background:radial-gradient(120% 60% at 50% -10%,#221e17 0%,var(--bg) 60%) fixed var(--bg)}
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer}
-:focus-visible{outline:3px solid var(--in);outline-offset:2px}
-.wrap{max-width:760px;margin:0 auto;padding:0 16px calc(92px + var(--safe-b))}
+:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:0 18px calc(96px + var(--safe-b))}
+h2{font-family:var(--tc);font-weight:500;font-size:16px;letter-spacing:.2em;color:var(--gold);margin:30px 0 12px;display:flex;align-items:center;gap:12px}
+h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.muted{color:var(--mute)} .small{font-size:13px}
 
 /* 頂部 */
-header{position:sticky;top:0;z-index:20;background:var(--ink);color:#f3f4f0;padding:calc(env(safe-area-inset-top,0px) + 10px) 0 10px}
-header .in{max-width:760px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:10px}
-.brand{font-family:var(--plate);font-weight:700;font-size:22px;letter-spacing:.06em}
-.props{display:flex;background:rgba(255,255,255,.1);border-radius:999px;padding:3px;margin-left:auto}
-.props button{border:0;background:none;color:#cfd6d6;padding:5px 14px;border-radius:999px;font-weight:500}
-.props button[aria-pressed=true]{background:#f3f4f0;color:var(--ink)}
-.lock{border:0;background:none;color:#cfd6d6;font-size:18px;padding:4px 6px;line-height:1}
-.lock.on{color:var(--todo)}
+header{position:sticky;top:0;z-index:20;background:rgba(18,17,14,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line2);padding:calc(var(--safe-t) + 10px) 0 10px}
+header .in{max-width:720px;margin:0 auto;padding:0 18px;display:flex;align-items:center;gap:12px}
+.brand{font-family:var(--serif);font-size:13px;letter-spacing:.5em;color:var(--gold);white-space:nowrap}
+.props{display:flex;gap:4px;margin:0 auto}
+.props button{border:0;background:none;color:var(--mute);font-family:var(--tc);font-weight:700;font-size:18px;letter-spacing:.18em;padding:4px 10px;border-bottom:1px solid transparent}
+.props button[aria-pressed=true]{color:var(--ink);border-bottom-color:var(--gold)}
+.lock{border:1px solid var(--line);background:none;color:var(--mute);width:34px;height:34px;border-radius:50%;font-size:14px;line-height:1;display:grid;place-items:center}
+.lock.on{color:var(--gold2);border-color:var(--gold)}
 
 /* 底部分頁 */
-nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:20;background:var(--sheet);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--safe-b)}
-nav.tabs button{flex:1;max-width:190px;border:0;background:none;padding:10px 0 12px;color:var(--ink2);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px}
-nav.tabs svg{width:22px;height:22px}
-nav.tabs button[aria-current=page]{color:var(--ink);font-weight:700}
-nav.tabs button{position:relative}
-#issueBadge:not(:empty){position:absolute;top:5px;left:calc(50% + 6px);background:var(--prio);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:0 6px;line-height:17px}
-.pick{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-weight:500}
-.pick input{display:none}
-nav.tabs button[aria-current=page] svg{stroke-width:2.2}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,17,14,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line2);display:flex;justify-content:center;padding-bottom:var(--safe-b)}
+nav.tabs button{position:relative;flex:1;max-width:150px;border:0;background:none;padding:10px 0 12px;color:var(--faint);font-size:12px;letter-spacing:.12em;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs svg{width:21px;height:21px}
+nav.tabs button[aria-current=page]{color:var(--gold2)}
+#issueBadge:not(:empty){position:absolute;top:6px;left:calc(50% + 6px);background:var(--prio);color:#1a1612;border-radius:999px;font-size:10.5px;font-weight:700;padding:0 6px;line-height:16px;letter-spacing:0}
 
 section.page{display:none}
 section.page.on{display:block}
-h2{font-size:18px;margin:22px 0 10px}
-.muted{color:var(--ink2)}
-.small{font-size:13px}
 
 /* 日期列 */
-.dayrow{display:flex;align-items:center;gap:8px;margin:16px 0 4px}
-.dayrow .date{font-family:var(--plate);font-size:30px;font-weight:700;line-height:1}
-.dayrow .wk{color:var(--ink2);font-size:14px}
-.dayrow .today{margin-left:6px;font-size:12px;border:1px solid var(--ink);border-radius:999px;padding:1px 9px;background:none}
-.dayrow .nav{margin-left:auto;display:flex;gap:6px}
-.iconbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--sheet);display:grid;place-items:center;font-size:18px}
+.dayrow{display:flex;align-items:center;justify-content:center;gap:14px;margin:20px 0 14px}
+.dayrow .arr{border:0;background:none;color:var(--gold);font-size:22px;width:36px;height:36px}
+.datepill{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 18px}
+.datepill svg{width:15px;height:15px;color:var(--gold)}
+.dayrow .date{font-family:var(--serif);font-size:20px;letter-spacing:.12em}
+.dayrow .wk{font-family:var(--tc);font-size:17px;letter-spacing:.12em}
+.dayrow .today{border:1px solid var(--line);background:none;color:var(--gold);border-radius:999px;font-size:12px;padding:2px 10px;letter-spacing:.1em}
 
-.counts{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 12px;font-size:14px}
-.counts b{font-family:var(--plate);font-size:22px;margin-right:3px}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.notice{display:flex;align-items:center;gap:14px;max-width:420px;margin:0 auto 18px;border:1px solid var(--line);background:linear-gradient(180deg,var(--panel2),var(--panel));border-radius:var(--r);padding:12px 16px;position:relative}
+.notice .ic{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--gold);color:var(--gold);display:grid;place-items:center;font-family:var(--serif);font-size:16px}
+.notice b{display:block;font-size:12.5px;letter-spacing:.2em;color:var(--gold);font-weight:500}
+.notice span{font-family:var(--tc);letter-spacing:.12em}
 
-/* 快速標記工具列 */
-.tools{position:sticky;top:58px;z-index:10;background:var(--linen);padding:8px 0 10px;margin:0 -16px;padding-left:16px;padding-right:16px;border-bottom:1px solid var(--line)}
-.tools .hint{font-size:13px;color:var(--ink2);margin-bottom:6px;min-height:20px}
-.tools .row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.tools .row::-webkit-scrollbar{display:none}
-.tool{flex:none;border:1.5px solid var(--line);background:var(--sheet);border-radius:999px;padding:6px 13px;font-weight:500;white-space:nowrap}
-.tool i{font-style:normal;display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-.tool[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
-.tool.text{margin-left:auto;border-style:dashed}
+/* 今日要掃 */
+.hero{text-align:center;margin:8px 0 6px}
+.hero .n{font-family:var(--serif);font-weight:600;font-size:76px;line-height:.95;color:var(--gold2)}
+.hero .u{font-family:var(--tc);letter-spacing:.35em;font-size:15px;margin-top:2px}
+.hero .sub{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--mute);letter-spacing:.08em}
+.hero .sub b{font-family:var(--serif);font-size:18px;color:var(--ink);font-weight:600;margin-right:2px}
+.hero .sub .p b{color:var(--prio)}
+.hero .sub a{color:var(--prio);text-decoration:none}
+.hero .zero{font-family:var(--tc);letter-spacing:.2em;color:var(--mute);padding:20px 0}
 
-/* 房號門牌 */
-.floor{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
-.floor .fl{width:26px;flex:none;font-family:var(--plate);font-weight:700;color:var(--ink2);font-size:15px;padding-top:12px;text-align:right}
-.grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
-.plate{position:relative;border:0;border-radius:var(--r);background:var(--sheet);box-shadow:inset 0 0 0 1px var(--line);padding:8px 9px 9px;text-align:left;min-height:84px;display:flex;flex-direction:column;justify-content:space-between}
-.plate .no{font-family:var(--plate);font-size:30px;font-weight:700;line-height:1}
-.plate .kd{font-size:12.5px;font-weight:700;line-height:1.3}
-.plate .st{font-size:12px;color:var(--ink2);line-height:1.3}
-.plate .tag{position:absolute;top:0;right:12px;width:14px;height:22px;border-radius:0 0 3px 3px}
-.plate.k-退房 .tag,.plate.k-續住.s-todo .tag{background:var(--todo)}
-.plate.k-退入 .tag{background:var(--prio)}
-.plate.k-入住 .tag{background:var(--in)}
-.plate.s-done{background:#e3efe9;box-shadow:inset 0 0 0 1.5px var(--done)}
-.plate.s-done .tag{background:var(--done)}
-.plate.s-done .no{color:var(--done)}
-.plate.s-todo{box-shadow:inset 0 0 0 1.5px var(--todo)}
-.plate.k-退入.s-todo{box-shadow:inset 0 0 0 2px var(--prio)}
-.plate .mini{position:absolute;bottom:8px;right:9px;font-size:11px;color:var(--ink2)}
+.fgroup{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--line2)}
+.fgroup:first-child{border-top:1px solid var(--line)}
+.fgroup .fl{width:34px;flex:none;font-family:var(--serif);font-size:24px;color:var(--gold);line-height:1.6}
+.fgroup ul{list-style:none;margin:0;padding:0;flex:1}
+.trow{width:100%;display:flex;align-items:baseline;gap:12px;border:0;background:none;text-align:left;padding:3px 0;border-bottom:1px dashed var(--line2)}
+.fgroup li:last-child .trow{border-bottom:0}
+.trow .no{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1.1;color:var(--ink);width:62px;flex:none}
+.trow .kd{font-family:var(--tc);font-size:16px;letter-spacing:.1em;color:var(--gold2)}
+.trow .pri{font-size:11.5px;letter-spacing:.15em;color:#1a1612;background:var(--prio);border-radius:999px;padding:1px 8px;align-self:center}
+.trow .ex{font-size:13px;color:var(--mute);margin-left:auto;text-align:right}
+.trow.k-退入 .kd{color:var(--prio)}
+.trow.k-續住 .kd{color:var(--ink)}
+
+/* 標記工具（收合）*/
+details.tools{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);margin:0 0 14px}
+details.tools summary{list-style:none;padding:11px 16px;font-family:var(--tc);letter-spacing:.15em;color:var(--gold);display:flex;align-items:center;gap:8px;cursor:pointer}
+details.tools summary::-webkit-details-marker{display:none}
+details.tools summary::after{content:"＋";margin-left:auto;color:var(--mute)}
+details.tools[open] summary::after{content:"－"}
+details.tools .hint{font-size:13px;color:var(--mute);padding:0 16px 8px}
+details.tools .row{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 14px}
+.tool{border:1px solid var(--line);background:none;border-radius:999px;padding:6px 13px;font-size:14px;letter-spacing:.06em;white-space:nowrap}
+.tool i{font-style:normal;display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.tool[aria-pressed=true]{background:var(--gold);color:#1a1612;border-color:var(--gold)}
+.tool.text{border-style:dashed}
+
+/* 總房間表 */
+.floor{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line2)}
+.floor .fl{width:34px;flex:none;font-family:var(--serif);font-size:24px;color:var(--gold);line-height:1.6}
+.grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.plate{position:relative;border:1px solid var(--line2);border-radius:10px;background:var(--panel);padding:6px 4px 7px;text-align:center;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--faint)}
+.plate .no{font-family:var(--serif);font-weight:600;font-size:24px;line-height:1.05}
+.plate .kd{font-size:11px;letter-spacing:.06em;line-height:1.3}
+.plate .st,.plate .tag{display:none}
+.plate.k-退房,.plate.k-續住.s-todo{border-color:var(--gold);color:var(--gold2);background:linear-gradient(180deg,var(--panel2),var(--panel))}
+.plate.k-退房 .kd,.plate.k-續住.s-todo .kd{color:var(--gold)}
+.plate.k-退入{border-color:var(--prio);color:var(--ink);background:linear-gradient(180deg,#2c211b,var(--panel))}
+.plate.k-退入 .kd{color:var(--prio)}
+.plate.k-入住{border-color:rgba(142,167,196,.5);color:var(--ink)}
+.plate.k-入住 .kd{color:var(--in)}
+.plate.k-續住{color:var(--mute)}
+.plate .mini{position:absolute;top:3px;right:6px;font-size:10px;color:var(--mute)}
+.plate .warn{position:absolute;top:2px;left:5px;font-size:11px}
 .plate.flash{animation:flash .5s}
-@keyframes flash{from{transform:scale(.94)}to{transform:none}}
+@keyframes flash{from{transform:scale(.92)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){.plate.flash{animation:none}}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--mute);margin:10px 0 0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
 
-.list{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
-.list .it{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
-.list .it:first-child{border-top:0}
-.list .it .no{font-family:var(--plate);font-size:24px;font-weight:700;width:52px}
-.list .it .ck{margin-left:auto;border:1.5px solid var(--done);color:var(--done);background:none;border-radius:999px;padding:4px 12px;font-weight:500}
-.list .it.done .ck{background:var(--done);color:#fff}
-.empty{padding:18px 14px;color:var(--ink2)}
+.list{background:var(--panel);border-radius:var(--r);border:1px solid var(--line2);overflow:hidden}
+.empty{padding:18px 16px;color:var(--mute);letter-spacing:.05em}
 
 /* 抽屜 */
-.scrim{position:fixed;inset:0;background:rgba(20,28,30,.45);z-index:40;display:none}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:none}
 .scrim.on{display:block}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--sheet);border-radius:18px 18px 0 0;max-height:88vh;overflow:auto;transform:translateY(105%);transition:transform .22s ease;padding:8px 18px calc(22px + var(--safe-b))}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--panel);border-top:1px solid var(--line);border-radius:20px 20px 0 0;max-height:88vh;overflow:auto;transform:translateY(105%);transition:transform .24s ease;padding:8px 20px calc(24px + var(--safe-b));max-width:720px;margin:0 auto}
 .sheet.on{transform:none}
 @media (prefers-reduced-motion:reduce){.sheet{transition:none}}
-.sheet .grab{width:42px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 10px}
-.sheet h3{margin:0;font-family:var(--plate);font-size:40px;line-height:1}
-.sheet .sub{color:var(--ink2);font-size:13px;margin-bottom:12px}
-.lbl{font-size:13px;color:var(--ink2);margin:14px 0 6px}
+.sheet .grab{width:40px;height:3px;border-radius:2px;background:var(--line);margin:6px auto 12px}
+.sheet h3{margin:0;font-family:var(--serif);font-weight:600;font-size:46px;line-height:1;color:var(--gold2)}
+.sheet h3.t{font-family:var(--tc);font-size:22px;letter-spacing:.15em;color:var(--ink)}
+.sheet .sub{color:var(--mute);font-size:13px;margin:4px 0 12px;letter-spacing:.05em}
+.lbl{font-size:12.5px;color:var(--gold);letter-spacing:.18em;margin:16px 0 7px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{white-space:nowrap;flex:none;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-weight:500}
-.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip.c-done[aria-pressed=true]{background:var(--done);border-color:var(--done)}
-.chip.c-todo[aria-pressed=true]{background:var(--todo);border-color:var(--todo);color:var(--ink)}
+.chip{white-space:nowrap;flex:none;border:1px solid var(--line);background:none;border-radius:999px;padding:6px 15px;letter-spacing:.06em}
+.chip[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#1a1612}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-input[type=time],input[type=text],input[type=password],textarea,select{width:100%;border:1.5px solid var(--line);border-radius:8px;background:#fff;padding:9px 11px}
-textarea{min-height:90px;resize:vertical;line-height:1.6}
-.steps{margin:0;padding-left:22px}.steps li{padding:3px 0}
-.checks label{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px dashed var(--line)}
-.checks label:first-child{border-top:0}
-.checks input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--done);flex:none}
-.checks .prog{font-size:13px;color:var(--done);font-weight:700}
-.btnrow{display:flex;gap:8px;margin-top:18px}
-.btn{border:0;border-radius:10px;padding:11px 18px;font-weight:700;background:var(--ink);color:#fff}
-.btn.ghost{background:none;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+input[type=time],input[type=text],input[type=password],textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:9px 11px;color-scheme:dark}
+textarea{min-height:90px;resize:vertical;line-height:1.65}
+.steps{margin:0;padding-left:22px;color:var(--ink)}.steps li{padding:3px 0}
+.steps li::marker{color:var(--gold);font-family:var(--serif)}
+.btnrow{display:flex;gap:8px;margin-top:20px}
+.btn{border:1px solid var(--gold);border-radius:999px;padding:10px 20px;letter-spacing:.12em;background:var(--gold);color:#1a1612;font-weight:500}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--line)}
 .btn.wide{flex:1}
+.addbtn{width:100%;margin:18px 0 6px;padding:13px;border-radius:var(--r);border:1px dashed var(--gold);background:none;color:var(--gold);letter-spacing:.12em}
+.pick{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:7px 14px}
+.pick input{display:none}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.qty{display:flex;align-items:center;gap:6px}.qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none}
+.qty b{min-width:22px;text-align:center;font-family:var(--serif);font-size:20px}
+.sitem{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--line2)}.sitem:first-child{border-top:0}
+.sitem label{flex:1;display:flex;gap:9px;align-items:center}.sitem input{width:18px;height:18px;accent-color:var(--gold)}
 
-/* 手冊等內容 */
-.subtabs{display:flex;gap:6px;overflow-x:auto;margin:16px 0 6px;scrollbar-width:none}
+/* 內容頁 */
+.subtabs{display:flex;gap:6px;overflow-x:auto;margin:20px 0 6px;scrollbar-width:none}
 .subtabs::-webkit-scrollbar{display:none}
-.doc{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:6px 18px 16px}
-.doc h3{font-size:17px;margin:18px 0 6px}
+.meta{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:12.5px;color:var(--mute);letter-spacing:.05em;min-height:34px}
+.meta .btn{margin-left:auto;padding:6px 16px;font-size:13px}
+.draft{border:1px solid var(--line);color:var(--gold);border-radius:999px;padding:1px 10px;font-size:12px;letter-spacing:.1em}
+.doc{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:6px 20px 18px}
+.doc h3{font-family:var(--tc);font-weight:700;font-size:17px;letter-spacing:.12em;color:var(--gold2);margin:20px 0 6px}
 .doc h4{font-size:15px;margin:14px 0 4px}
-.doc ul,.doc ol{padding-left:20px;margin:6px 0}
-.doc li{margin:3px 0}
+.doc ul,.doc ol{padding-left:22px;margin:6px 0}
+.doc li{margin:4px 0}
+.doc li::marker{color:var(--gold)}
 .doc p{margin:8px 0}
-.meta{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px;color:var(--ink2)}
-.meta .btn{margin-left:auto;padding:7px 14px;font-size:14px}
-.draft{background:#fbf1d6;color:#7a5a07;border-radius:6px;padding:1px 8px;font-size:12px}
 
-.supply{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);margin-bottom:12px;overflow:hidden}
-.supply h3{margin:0;padding:12px 16px;font-size:16px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:8px}
-.supply h3 span{font-weight:400;color:var(--ink2);font-size:13px}
+.supply{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.supply h3{margin:0;padding:12px 16px;font-family:var(--tc);font-size:16px;letter-spacing:.12em;color:var(--gold2);border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
+.supply h3 span{font-family:var(--serif);color:var(--mute);font-size:15px;letter-spacing:.06em}
 .supply table{width:100%;border-collapse:collapse}
-.supply td{padding:8px 16px;border-top:1px solid var(--line);vertical-align:top}
+.supply td{padding:8px 16px;border-top:1px solid var(--line2);vertical-align:top}
 .supply tr:first-child td{border-top:0}
-.supply td.q{font-family:var(--plate);font-size:19px;font-weight:700;width:1%;white-space:nowrap;text-align:right}
-.supply td.n{color:var(--ink2);font-size:13px}
+.supply td.q{font-family:var(--serif);font-size:20px;font-weight:600;width:1%;white-space:nowrap;text-align:right;color:var(--gold2)}
+.supply td.n{color:var(--mute);font-size:13px}
+.supply .n{color:var(--mute);font-size:13px}
+.restock{border:1px solid var(--prio);background:linear-gradient(180deg,#2c211b,var(--panel));border-radius:var(--r);padding:10px 16px;margin-bottom:14px}
+.restock h3{margin:4px 0 6px;font-family:var(--tc);font-size:16px;letter-spacing:.15em;color:var(--prio)}
+.restock table{width:100%;border-collapse:collapse}.restock td{padding:6px 0;border-top:1px solid var(--line2);vertical-align:top}
+.restock tr:first-child td{border-top:0}.restock td.q{font-family:var(--serif);font-size:21px;font-weight:600;text-align:right;white-space:nowrap;width:1%;padding-left:10px}
+.restock td.r,.restock p{color:var(--mute);font-size:13px}
 
-.rcard{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line);background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left}
+.rcard{display:flex;gap:14px;align-items:flex-start;padding:12px 16px;border:0;border-top:1px solid var(--line2);background:none;width:100%;text-align:left}
 .rcard:first-child{border-top:0}
-.rcard .no{font-family:var(--plate);font-size:26px;font-weight:700;width:52px;flex:none;line-height:1.1}
-.rcard .tp{font-weight:700}
-.rcard .nt{color:var(--ink2);font-size:13px}
+.rcard .no{font-family:var(--serif);font-weight:600;font-size:26px;width:52px;flex:none;line-height:1.1;color:var(--gold2)}
+.rcard .tp{font-family:var(--tc);letter-spacing:.08em}
+.rcard .nt{color:var(--mute);font-size:13px}
 
-.issue{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:12px 14px;margin-bottom:10px}
-.issue .hd{display:flex;align-items:baseline;gap:8px}
-.issue .hd .no{font-family:var(--plate);font-size:26px;font-weight:700;line-height:1}
-.issue .ty{font-size:12px;font-weight:700;border-radius:4px;padding:1px 7px;background:#e7ebe7}
-.issue .ty.t-故障{background:#f6dcd7;color:#8f2a1b}.issue .ty.t-缺備品{background:#fbedc9;color:#7a5a07}.issue .ty.t-遺留物{background:#dbe5f3;color:#2c4f84}
-.issue .tm{margin-left:auto;font-size:12px;color:var(--ink2);text-align:right}
+.issue{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px 16px;margin-bottom:10px}
+.issue .hd{display:flex;align-items:baseline;gap:9px}
+.issue .hd .no{font-family:var(--serif);font-weight:600;font-size:28px;line-height:1;color:var(--gold2)}
+.issue .ty{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:0 9px;letter-spacing:.1em}
+.issue .ty.t-故障{border-color:var(--prio);color:var(--prio)}.issue .ty.t-缺備品{border-color:var(--gold);color:var(--gold)}.issue .ty.t-遺留物{border-color:var(--in);color:var(--in)}
+.issue .tm{margin-left:auto;font-size:12px;color:var(--mute);text-align:right}
 .issue .tx{margin:6px 0 0;white-space:pre-wrap}
-.issue .its{margin:6px 0 0;font-size:14px}
+.issue .its{margin:6px 0 0;font-size:14px;color:var(--gold2)}
 .issue .ph{display:flex;gap:6px;margin-top:8px}
-.issue .ph img{width:76px;height:76px;object-fit:cover;border-radius:8px;background:#ddd}
-.issue .ft{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--ink2)}
-.issue .ft .btn{margin-left:auto;padding:7px 14px;font-size:14px;background:var(--done)}
-.issue.done{opacity:.72}.issue.done .ft .btn{background:none;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
-.addbtn{width:100%;margin:16px 0 4px;padding:13px;border-radius:var(--r);border:1.5px dashed var(--ink2);background:none;font-weight:700}
-.restock{background:#fbf1d6;border-radius:var(--r);padding:10px 16px;margin-bottom:14px}
-.restock h3{margin:4px 0 6px;font-size:16px}
-.restock table{width:100%;border-collapse:collapse}.restock td{padding:5px 0;border-top:1px solid #ecd9a3;vertical-align:top}
-.restock tr:first-child td{border-top:0}.restock td.q{font-family:var(--plate);font-size:19px;font-weight:700;text-align:right;white-space:nowrap;width:1%;padding-left:10px}
-.restock td.r{color:#7a5a07;font-size:13px}
-.qty{display:flex;align-items:center;gap:6px}.qty button{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-weight:700}
-.qty b{min-width:20px;text-align:center;font-family:var(--plate);font-size:18px}
-.sitem{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--line)}.sitem:first-child{border-top:0}
-.sitem label{flex:1;display:flex;gap:8px;align-items:center}.sitem input{width:20px;height:20px;accent-color:var(--todo)}
-.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px}
-.plate .warn{position:absolute;top:6px;left:auto;right:32px;font-size:13px}
-.counts a{color:var(--prio);font-weight:700;text-decoration:none}
-.rpt-nav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}
-.rpt-nav .mo{font-family:var(--plate);font-size:28px;font-weight:700}
-.rpt-nav .nav{margin-left:auto;display:flex;gap:6px}
-.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-bottom:14px}
-.stat{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:10px 12px}
-.stat b{display:block;font-family:var(--plate);font-size:28px;line-height:1.1}
-.stat span{font-size:12.5px;color:var(--ink2)}
-.bars{display:flex;align-items:flex-end;gap:2px;height:120px;background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:10px 10px 22px;position:relative}
+.issue .ph img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.issue .ft{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--mute)}
+.issue .ft .btn{margin-left:auto;padding:6px 16px;font-size:13px}
+.issue.done{opacity:.6}.issue.done .ft .btn{background:none;color:var(--ink);border-color:var(--line)}
+
+.rpt-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 16px}
+.rpt-nav .mo{font-family:var(--serif);font-size:30px;letter-spacing:.1em;color:var(--gold2)}
+.rpt-nav button{border:0;background:none;color:var(--gold);font-size:22px;width:36px;height:36px}
+.rpt-nav button:disabled{color:var(--faint)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 12px}
+.stat b{display:block;font-family:var(--serif);font-weight:600;font-size:32px;line-height:1.05;color:var(--gold2)}
+.stat span{font-size:12px;color:var(--mute);letter-spacing:.06em}
+.bars{display:flex;align-items:flex-end;gap:2px;height:120px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 10px 22px}
 .bars .b{flex:1;position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
-.bars .b i{display:block;background:var(--todo);border-radius:2px 2px 0 0}
-.bars .b i.d{background:var(--done);border-radius:0}
-.bars .b em{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-style:normal;color:var(--ink2)}
-.legend{display:flex;gap:14px;font-size:12.5px;color:var(--ink2);margin:6px 0 0}
-.rtable{width:100%;border-collapse:collapse;background:var(--sheet);border-radius:var(--r);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line);font-size:14px}
-.rtable th,.rtable td{padding:7px 8px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
-.rtable th{font-size:12px;color:var(--ink2);font-weight:500;border-top:0}
-.rtable td:first-child,.rtable th:first-child{text-align:left;font-family:var(--plate);font-size:18px;font-weight:700}
-.rtable th:first-child{font-family:inherit;font-size:12px}
-.rtable tr.sum td{font-weight:700;background:#eef1ed}
+.bars .b i{display:block;background:linear-gradient(180deg,var(--gold2),var(--gold));border-radius:2px 2px 0 0;opacity:.85}
+.bars .b em{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:11px;font-style:normal;color:var(--mute);font-family:var(--serif)}
 .tablewrap{overflow-x:auto}
-.toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:9px 8px 9px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
+.rtable{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);font-size:14px}
+.rtable th,.rtable td{padding:7px 9px;text-align:right;border-top:1px solid var(--line2);white-space:nowrap}
+.rtable th{font-size:12px;color:var(--gold);font-weight:400;letter-spacing:.08em;border-top:0}
+.rtable td:first-child{text-align:left;font-family:var(--serif);font-size:19px;font-weight:600;color:var(--gold2)}
+.rtable th:first-child{text-align:left}
+.rtable tr.sum td{color:var(--gold2);border-top:1px solid var(--line)}
+.rtable tr.sum td:first-child{font-family:var(--tc);font-size:14px}
+
+.toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 8px 8px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
 .toast.on{display:flex}
-.toast button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:4px 12px}
-.toast.err{background:var(--prio);padding-right:18px}
-.offline{background:var(--prio);color:#fff;text-align:center;font-size:13px;padding:4px;display:none}
+.toast button{border:1px solid var(--line);background:none;color:var(--gold2);border-radius:999px;padding:3px 12px}
+.toast.err{border-color:var(--prio);color:var(--prio);padding-right:18px}
+.offline{background:#3a2019;color:var(--prio);text-align:center;font-size:13px;padding:4px;display:none}
 .offline.on{display:block}
+@media (min-width:560px){.trow .no{font-size:32px}.hero .n{font-size:88px}}
 </style>
 </head>
 <body>
 <header>
   <div class="in">
-    <span class="brand">E·ROOM</span>
+    <span class="brand">E · ROOM</span>
     <div class="props" role="group" aria-label="館別">
       <button data-prop="ersu">貳宿</button>
       <button data-prop="eryanglou">貳洋樓</button>
     </div>
-    <button class="lock" id="lockBtn" aria-label="管理員登入" title="管理員">🔒</button>
+    <button class="lock" id="lockBtn" aria-label="管理員登入" title="管理員"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
   </div>
 </header>
 <div class="offline" id="offline">連不到伺服器，改動會在恢復連線後重送</div>
@@ -235,24 +258,25 @@ textarea{min-height:90px;resize:vertical;line-height:1.6}
   <!-- 今日 -->
   <section class="page on" id="p-today">
     <div class="dayrow">
-      <span class="date" id="dDate"></span><span class="wk" id="dWk"></span>
-      <button class="today" id="goToday" hidden>回今天</button>
-      <div class="nav">
-        <button class="iconbtn" id="prevDay" aria-label="前一天">‹</button>
-        <button class="iconbtn" id="nextDay" aria-label="後一天">›</button>
-      </div>
+      <button class="arr" id="prevDay" aria-label="前一天">‹</button>
+      <div class="datepill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+        <span class="date" id="dDate"></span><span class="wk" id="dWk"></span></div>
+      <button class="arr" id="nextDay" aria-label="後一天">›</button>
     </div>
-    <div class="counts" id="counts"></div>
+    <div style="text-align:center;margin:-6px 0 12px"><button class="today" id="goToday" hidden>回到今天</button></div>
+    <div class="notice"><span class="ic">!</span><div><b>AI 可能會出錯</b><span>出入房間請優先敲門</span></div></div>
 
-    <div class="tools">
-      <div class="hint" id="toolHint">選一個標記，再點房號，可以連續點好幾間</div>
+    <div class="hero" id="counts"></div>
+    <div id="todoList"></div>
+
+    <h2>總房間表</h2>
+    <details class="tools" id="toolsBox">
+      <summary>標記房況</summary>
+      <div class="hint" id="toolHint"></div>
       <div class="row" id="toolRow"></div>
-    </div>
-
+    </details>
     <div id="floors"></div>
-
-    <h2>今日要掃</h2>
-    <div class="list" id="todoList"></div>
+    <div class="legend"><span><i class="dot" style="background:var(--prio)"></i>退房→入住（優先）</span><span><i class="dot" style="background:var(--gold)"></i>退房、續住要掃</span><span><i class="dot" style="background:var(--in)"></i>入住</span></div>
   </section>
 
   <!-- 回報 -->
@@ -552,42 +576,39 @@ function kindText(d) {
 }
 function renderToday(flashRooms = []) {
   const d = new Date(S.date + 'T00:00:00Z');
-  $('#dDate').textContent = (d.getUTCMonth() + 1) + '/' + d.getUTCDate();
-  $('#dWk').textContent = '週' + WK[d.getUTCDay()];
+  $('#dDate').textContent = (d.getUTCMonth() + 1) + ' · ' + d.getUTCDate();
+  $('#dWk').textContent = '星期' + WK[d.getUTCDay()];
   $('#goToday').hidden = S.date === todayStr();
 
   const rooms = S.rooms[S.prop] || [];
   const R = recs();
-  let todo = 0, done = 0, inn = 0, prio = 0;
-  for (const r of rooms) {
-    const x = R[r]; if (!x) continue;
-    if (x.status === 'todo') { todo++; if (x.kind === '退入') prio++; }
-    if (x.status === 'done') done++;
-    if (x.kind === '入住' || x.kind === '退入') inn++;
-  }
-  $('#counts').innerHTML =
-    `<span><i class="dot" style="background:var(--todo)"></i><b>${todo}</b>要掃${prio ? `（優先 ${prio}）` : ''}</span>` +
-    `<span><i class="dot" style="background:var(--in)"></i><b>${inn}</b>今晚入住</span>` +
-    ((S.openIssues || []).length ? `<a href="#" data-goissue>⚠️ ${(S.openIssues || []).length} 件回報待處理</a>` : '');
+  let inn = 0;
+  for (const r of rooms) { const x = R[r]; if (x && (x.kind === '入住' || x.kind === '退入')) inn++; }
 
-  // 依樓層
+  // 今日要掃：依樓層條列，優先的排前面
+  const order = { '退入': 0, '退房': 1, '續住': 2 };
+  const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && R[r].kind && R[r].kind !== '入住');
+  const prio = list.filter((r) => R[r].kind === '退入').length;
+  const nIss = (S.openIssues || []).length;
+  $('#counts').innerHTML = list.length
+    ? `<div class="n">${list.length}</div><div class="u">間要掃</div>
+       <div class="sub">${prio ? `<span class="p"><b>${prio}</b>間優先</span>` : ''}<span><b>${inn}</b>間今晚入住</span>${nIss ? `<a href="#" data-goissue>⚠️ ${nIss} 件回報待處理</a>` : ''}</div>`
+    : `<div class="zero">今天沒有要掃的房間</div>${nIss ? `<div class="sub"><a href="#" data-goissue>⚠️ ${nIss} 件回報待處理</a></div>` : ''}`;
+  const byFl = {};
+  for (const r of list) (byFl[floorOf(r)] ||= []).push(r);
+  $('#todoList').innerHTML = Object.keys(byFl).map((f) => `<div class="fgroup"><div class="fl">${esc(f)}F</div><ul>${
+    byFl[f].sort((a, b) => (order[R[a].kind] ?? 3) - (order[R[b].kind] ?? 3) || rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
+      const x = R[r];
+      const extra = [x.lateOut && '延後退房 ' + x.lateOut, x.earlyIn && '提早入住 ' + x.earlyIn, x.note, openFor(S.prop, r).length && '⚠️'].filter(Boolean).join('・');
+      return `<li><button class="trow k-${esc(x.kind)}" data-open="${esc(r)}"><span class="no">${esc(r)}</span><span class="kd">${esc(KINDS[x.kind]?.label || x.kind)}</span>${x.kind === '退入' ? '<span class="pri">優先</span>' : ''}${extra ? `<span class="ex">${esc(extra)}</span>` : ''}</button></li>`;
+    }).join('')}</ul></div>`).join('');
+
+  // 總房間表
   const fl = {};
   for (const r of rooms) (fl[floorOf(r)] ||= []).push(r);
   $('#floors').innerHTML = rooms.length ? Object.keys(fl).map((f) =>
     `<div class="floor"><div class="fl">${esc(f)}F</div><div class="grid">${fl[f].map((r) => plate(r, R[r], flashRooms.includes(r))).join('')}</div></div>`
-  ).join('') : `<p class="empty">這館還沒有房號。到「房間」分頁設定（需要管理員）。</p>`;
-
-  // 要掃清單：優先 → 退房 → 續住
-  const order = { '退入': 0, '退房': 1, '續住': 2 };
-  const list = rooms.filter((r) => R[r] && R[r].status === 'todo' && R[r].kind !== '入住')
-    .sort((a, b) => (order[R[a].kind] ?? 3) - (order[R[b].kind] ?? 3) || a.localeCompare(b));
-  $('#todoList').innerHTML = list.length ? list.map((r) => {
-    const x = R[r];
-    const extra = [x.lateOut && '延後退房 ' + x.lateOut, x.earlyIn && '提早入住 ' + x.earlyIn, x.note].filter(Boolean).join('・');
-    return `<div class="it"><span class="no">${esc(r)}</span>
-      <div><div style="font-weight:700;color:${x.kind === '退入' ? 'var(--prio)' : 'inherit'}">${esc(kindText(x))}</div>${extra ? `<div class="small muted">${esc(extra)}</div>` : ''}</div>
-      </div>`;
-  }).join('') : `<div class="empty">今天沒有要掃的房間。用上面的標記點房號就能加入。</div>`;
+  ).join('') : `<p class="empty">這館還沒有房號。到「報表 → 房間資料」設定（需要管理員）。</p>`;
 }
 function plate(r, x, flash) {
   x = x || {};
@@ -597,7 +618,7 @@ function plate(r, x, flash) {
   const warn = openFor(S.prop, r).length;
   return `<button class="${cls}" data-room="${esc(r)}" aria-label="${esc(r)} ${esc(kindText(x) || '空房')}">
     ${x.kind ? '<span class="tag"></span>' : ''}${warn ? '<span class="warn" title="有未處理的回報">⚠️</span>' : ''}<span class="no">${esc(r)}</span>
-    <span><span class="kd">${esc(x.kind ? (KINDS[x.kind]?.label || x.kind) : '')}</span><br><span class="st">${esc(st)}</span></span>
+    <span class="kd">${esc(x.kind ? ({ '退入': '退→入', '續住': x.status === 'todo' ? '續住掃' : '續住' }[x.kind] || KINDS[x.kind]?.label || x.kind) : '')}</span>
     ${mini ? `<span class="mini">${esc(mini)}</span>` : ''}</button>`;
 }
 
@@ -606,7 +627,7 @@ function renderTools() {
     `<button class="tool" data-tool="${t.id}" aria-pressed="${S.tool === t.id}"><i style="background:${t.color}"></i>${t.label}</button>`
   ).join('') + `<button class="tool text" id="textBtn">貼上文字</button>`;
   const t = TOOLS.find((x) => x.id === S.tool);
-  $('#toolHint').textContent = t ? `點房號標成「${t.label}」，再點一次這個按鈕結束` : '選一個標記，再點房號，可以連續點好幾間';
+  $('#toolHint').textContent = t ? `點下面的房號標成「${t.label}」，再點一次這個按鈕結束` : '選一個標記，再點下面的房號，可以連續點好幾間';
 }
 
 // ---------- 房間抽屜 ----------
@@ -698,7 +719,7 @@ function parseText(text, rooms) {
 function openText() {
   const rooms = S.rooms[S.prop] || [];
   $('#sheetBody').innerHTML = `
-    <h3 style="font-size:24px;font-family:inherit">貼上文字</h3>
+    <h3 class="t">貼上文字</h3>
     <div class="sub">寫「標記＋房號」，一次標好多間。套用到 ${esc(PROPS[S.prop])} ${esc(S.date.slice(5).replace('-', '/'))}。</div>
     <textarea id="tIn" style="min-height:130px" placeholder="退房 201 203 205&#10;退入 301&#10;續住 502 503&#10;入住 306"></textarea>
     <div class="lbl">會套用</div><div id="tPrev" class="small muted">還沒有辨識到房號</div>
@@ -833,7 +854,7 @@ function openRoomInfo(r) {
 }
 function openRoomList() {
   const rooms = S.rooms[S.prop] || [];
-  $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">修改房號</h3><div class="sub">${esc(PROPS[S.prop])}。用空白或逗號分隔。刪掉的房號不會刪除它的歷史紀錄。</div>
+  $('#sheetBody').innerHTML = `<h3 class="t">修改房號</h3><div class="sub">${esc(PROPS[S.prop])}。用空白或逗號分隔。刪掉的房號不會刪除它的歷史紀錄。</div>
     <textarea id="rlIn" style="min-height:120px">${esc(rooms.join(' '))}</textarea>
     <div class="btnrow"><button class="btn ghost" id="rlClose">取消</button><button class="btn wide" id="rlSave">儲存房號</button></div>`;
   $('#rlClose').onclick = closeSheet;
@@ -860,7 +881,7 @@ function openEdit(k) {
     val = doc(k).text; help = '「### 標題」、「- 項目」、「1. 步驟」、「**粗體**」。';
   }
   const title = (BOOK.find((b) => b[0] === k) || [k, '備品清單'])[1];
-  $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">編輯${esc(title)}</h3><div class="sub">${esc(help)}</div>
+  $('#sheetBody').innerHTML = `<h3 class="t">編輯${esc(title)}</h3><div class="sub">${esc(help)}</div>
     <textarea id="eIn" style="min-height:46vh;font-size:14px">${esc(val)}</textarea>
     <div class="btnrow"><button class="btn ghost" id="eClose">取消</button><button class="btn wide" id="eSave">儲存並發布</button></div>`;
   $('#eClose').onclick = closeSheet;
@@ -989,7 +1010,7 @@ function openIssueForm(room) {
   const f = { room: room || '', type: room ? '' : '', text: '', items: {}, photos: [], extra: '' };
   const draw = () => {
     const names = f.room ? supplyItemsFor(f.room) : [];
-    $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">回報問題</h3><div class="sub">${esc(PROPS[S.prop])}。送出後會出現在「回報」，管理員處理好再按掉。</div>
+    $('#sheetBody').innerHTML = `<h3 class="t">回報問題</h3><div class="sub">${esc(PROPS[S.prop])}。送出後會出現在「回報」，管理員處理好再按掉。</div>
       <div class="lbl">房號</div>
       <select id="qRoom"><option value="">選房號</option>${rooms.map((r) => `<option ${f.room === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}<option value="公共" ${f.room === '公共' ? 'selected' : ''}>公共區域</option></select>
       <div class="lbl">類型</div>
@@ -1046,10 +1067,10 @@ function openIssueForm(room) {
 }
 
 // ---------- 管理員 ----------
-function renderLock() { const b = $('#lockBtn'); b.textContent = S.admin ? '🔓' : '🔒'; b.classList.toggle('on', !!S.admin); b.setAttribute('aria-label', S.admin ? '管理員已登入，點一下登出' : '管理員登入'); }
+function renderLock() { const b = $('#lockBtn'); b.innerHTML = S.admin ? '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></svg>' : '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'; b.classList.toggle('on', !!S.admin); b.setAttribute('aria-label', S.admin ? '管理員已登入，點一下登出' : '管理員登入'); }
 $('#lockBtn').onclick = () => {
   if (S.admin) { S.admin = ''; ss.set('eroom.admin', ''); renderLock(); renderAll(); toast('已登出管理員'); return; }
-  $('#sheetBody').innerHTML = `<h3 style="font-size:24px;font-family:inherit">管理員登入</h3><div class="sub">登入後可以編輯手冊、備品、房號與房間資料。員工不用登入。</div>
+  $('#sheetBody').innerHTML = `<h3 class="t">管理員登入</h3><div class="sub">登入後可以編輯手冊、備品、房號與房間資料。員工不用登入。</div>
     <input type="password" id="aPw" autocomplete="current-password" placeholder="管理員密碼">
     <div class="btnrow"><button class="btn ghost" id="aClose">取消</button><button class="btn wide" id="aGo">登入</button></div>`;
   $('#aClose').onclick = closeSheet;
@@ -1093,6 +1114,8 @@ document.addEventListener('click', (e) => {
   if (fi) { S.issueFilter = fi.dataset.ifilter; loadIssues().then(renderIssues).catch(() => {}); renderIssues(); return; }
   if (t.closest('#newIssue')) { openIssueForm(''); return; }
   if (t.closest('[data-goissue]')) { e.preventDefault(); document.querySelector('[data-tab="issue"]').click(); return; }
+  const tr = t.closest('[data-open]');
+  if (tr) { openRoom(tr.dataset.open); return; }
   const pl = t.closest('.plate');
   if (pl) {
     const room = pl.dataset.room;
