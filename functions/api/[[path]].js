@@ -423,6 +423,11 @@ async function dailyText(env, date, props = PROPS) {
       lines.push(`⭐今日入住（優先 ${prio.length}）：`);
       lines.push(...compact(prio, {}));
     }
+    const stay = rooms.filter((r) => R[r] && R[r].kind === '續住');
+    if (stay.length) {
+      lines.push('⚠️今日續住：');
+      lines.push(...compact(stay, {}));
+    }
   }
   return lines.join('\n').slice(0, 4900);
 }
