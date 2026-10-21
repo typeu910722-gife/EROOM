@@ -176,20 +176,6 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .doc li::marker{color:var(--gold)}
 .doc p{margin:8px 0}
 
-.supply{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
-.supply h3{margin:0;padding:12px 16px;font-family:var(--tc);font-size:16px;letter-spacing:.12em;color:var(--gold2);border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
-.supply h3 span{font-family:var(--serif);color:var(--mute);font-size:15px;letter-spacing:.06em}
-.supply table{width:100%;border-collapse:collapse}
-.supply td{padding:8px 16px;border-top:1px solid var(--line2);vertical-align:top}
-.supply tr:first-child td{border-top:0}
-.supply td.q{font-family:var(--serif);font-size:20px;font-weight:600;width:1%;white-space:nowrap;text-align:right;color:var(--gold2)}
-.supply td.n{color:var(--mute);font-size:13px}
-.supply .n{color:var(--mute);font-size:13px}
-.restock{border:1px solid var(--prio);background:linear-gradient(180deg,#2c211b,var(--panel));border-radius:var(--r);padding:10px 16px;margin-bottom:14px}
-.restock h3{margin:4px 0 6px;font-family:var(--tc);font-size:16px;letter-spacing:.15em;color:var(--prio)}
-.restock table{width:100%;border-collapse:collapse}.restock td{padding:6px 0;border-top:1px solid var(--line2);vertical-align:top}
-.restock tr:first-child td{border-top:0}.restock td.q{font-family:var(--serif);font-size:21px;font-weight:600;text-align:right;white-space:nowrap;width:1%;padding-left:10px}
-.restock td.r,.restock p{color:var(--mute);font-size:13px}
 
 .rcard{display:flex;gap:14px;align-items:flex-start;padding:12px 16px;border:0;border-top:1px solid var(--line2);background:none;width:100%;text-align:left}
 .rcard:first-child{border-top:0}
@@ -293,12 +279,6 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
     <div class="doc" id="bookBody"></div>
   </section>
 
-  <!-- 備品 -->
-  <section class="page" id="p-supply">
-    <div class="meta" id="supplyMeta" style="margin-top:16px"></div>
-    <div id="supplyBody"></div>
-  </section>
-
   <!-- 房間 -->
   <section class="page" id="p-rooms">
     <div class="subtabs" id="roomTabs"></div>
@@ -318,7 +298,6 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <button data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>今日</button>
   <button data-tab="issue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>回報<span id="issueBadge"></span></button>
   <button data-tab="book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
-  <button data-tab="supply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>備品</button>
   <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>報表</button>
 </nav>
 
@@ -400,30 +379,6 @@ const DEFAULTS = {
 - 下一組客人當天入住，先掃這幾間，入住時間前要完成` },
   checklist: { stay: ['垃圾清空', '床鋪整理', '浴室擦乾', '換毛巾', '補衛生紙', '補水與茶包'],
     checkout: ['檢查遺留物', '撤床品毛巾', '垃圾清空', '浴室刷洗', '擦拭桌面門把', '鋪床', '補備品', '吸地拖地', '關燈關冷氣'] },
-  supplies: { text:
-`## 雙人房
-- 大浴巾 | 2
-- 小毛巾 | 2
-- 腳踏墊 | 1
-- 拖鞋 | 2 雙
-- 牙刷組 | 2
-- 洗髮精、沐浴乳 | 各 1 | 不足半瓶就換
-- 衛生紙 | 1 捲 + 1 包
-- 礦泉水 | 2
-- 茶包 | 2
-- 垃圾袋 | 2
-
-## 四人房
-- 大浴巾 | 4
-- 小毛巾 | 4
-- 腳踏墊 | 1
-- 拖鞋 | 4 雙
-- 牙刷組 | 4
-- 洗髮精、沐浴乳 | 各 1
-- 衛生紙 | 2 捲 + 1 包
-- 礦泉水 | 4
-- 茶包 | 4
-- 垃圾袋 | 2` },
   roominfo: { rooms: {} },
 };
 
@@ -786,37 +741,6 @@ function renderBook() {
 }
 
 // ---------- 備品 ----------
-function parseSupplies(text) {
-  const groups = []; let g = null;
-  for (const ln of String(text || '').split('\n')) {
-    let m;
-    if ((m = ln.match(/^##\s+(.*)/))) { g = { name: m[1].trim(), items: [] }; groups.push(g); }
-    else if ((m = ln.match(/^\s*[-*]\s+(.*)/))) {
-      if (!g) { g = { name: '通用', items: [] }; groups.push(g); }
-      const [name, qty = '', note = ''] = m[1].split('|').map((s) => s.trim());
-      g.items.push({ name, qty, note });
-    }
-  }
-  return groups;
-}
-function renderSupply() {
-  $('#supplyMeta').innerHTML = metaBar('supplies');
-  const groups = parseSupplies(doc('supplies').text);
-  const info = doc('roominfo').rooms || {};
-  // 補貨清單：未處理的「缺備品」回報加總
-  const need = {};
-  for (const i of (S.openIssues || []).filter((i) => i.type === '缺備品')) {
-    for (const it of i.items) { const n = (need[it.name] ||= { qty: 0, rooms: [] }); n.qty += it.qty; n.rooms.push(PROPS[i.prop] + ' ' + i.room); }
-  }
-  const needHtml = Object.keys(need).length ? `<div class="restock"><h3>補貨清單</h3><table>${Object.keys(need).map((k) =>
-    `<tr><td>${esc(k)}<div class="r">${esc([...new Set(need[k].rooms)].join('、'))}</div></td><td class="q">${need[k].qty}</td></tr>`).join('')}</table>
-    <p class="small" style="color:#7a5a07;margin:6px 0 4px">補好後到「回報」把那幾筆按「處理好了」，這裡就會扣掉。</p></div>` : '';
-  $('#supplyBody').innerHTML = needHtml + groups.map((g) => {
-    const rooms = Object.keys(info).filter((k) => info[k].type === g.name).map((k) => k.split(':')[1]);
-    return `<div class="supply"><h3>${esc(g.name)}${rooms.length ? `<span>${esc(rooms.join(' '))}</span>` : ''}</h3><table>${g.items.map((i) =>
-      `<tr><td>${esc(i.name)}${i.note ? `<div class="n">${esc(i.note)}</div>` : ''}</td><td class="q">${esc(i.qty)}</td></tr>`).join('')}</table></div>`;
-  }).join('') || '<p class="empty">還沒有備品清單。</p>';
-}
 
 // ---------- 房間 ----------
 function renderRooms() {
@@ -837,16 +761,14 @@ function renderRooms() {
 function openRoomInfo(r) {
   const all = { ...(doc('roominfo').rooms || {}) };
   const i = all[S.prop + ':' + r] || {};
-  const types = parseSupplies(doc('supplies').text).map((g) => g.name);
   $('#sheetBody').innerHTML = `<h3>${esc(r)}</h3><div class="sub">${esc(PROPS[S.prop])}・房間資料</div>
-    <div class="lbl">房型（對應備品清單）</div>
-    <select id="iType"><option value="">未設定</option>${types.map((t) => `<option ${i.type === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+    <div class="lbl">房型</div><input type="text" id="iType" value="${esc(i.type || '')}" placeholder="例如：雙人房">
     <div class="lbl">床型</div><input type="text" id="iBeds" value="${esc(i.beds || '')}" placeholder="例如：雙人床 1">
     <div class="lbl">注意事項（員工打開房號時會看到）</div><textarea id="iNote" placeholder="例如：熱水器開關在浴室門後">${esc(i.note || '')}</textarea>
     <div class="btnrow"><button class="btn ghost" id="iClose">取消</button><button class="btn wide" id="iSave">儲存</button></div>`;
   $('#iClose').onclick = closeSheet;
   $('#iSave').onclick = async () => {
-    all[S.prop + ':' + r] = { type: $('#iType').value, beds: $('#iBeds').value.trim(), note: $('#iNote').value.trim() };
+    all[S.prop + ':' + r] = { type: $('#iType').value.trim(), beds: $('#iBeds').value.trim(), note: $('#iNote').value.trim() };
     await saveDoc('roominfo', { rooms: all });
     closeSheet(); renderRooms();
   };
@@ -998,29 +920,17 @@ function shrink(file) {
     img.src = url;
   });
 }
-function supplyItemsFor(room) {
-  const groups = parseSupplies(doc('supplies').text);
-  const type = ((doc('roominfo').rooms || {})[S.prop + ':' + room] || {}).type;
-  const g = groups.find((x) => x.name === type);
-  const names = g ? g.items.map((i) => i.name) : [...new Set(groups.flatMap((x) => x.items.map((i) => i.name)))];
-  return names;
-}
 function openIssueForm(room) {
   const rooms = S.rooms[S.prop] || [];
   const f = { room: room || '', type: room ? '' : '', text: '', items: {}, photos: [], extra: '' };
   const draw = () => {
-    const names = f.room ? supplyItemsFor(f.room) : [];
     $('#sheetBody').innerHTML = `<h3 class="t">回報問題</h3><div class="sub">${esc(PROPS[S.prop])}。送出後會出現在「回報」，管理員處理好再按掉。</div>
       <div class="lbl">房號</div>
       <select id="qRoom"><option value="">選房號</option>${rooms.map((r) => `<option ${f.room === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}<option value="公共" ${f.room === '公共' ? 'selected' : ''}>公共區域</option></select>
       <div class="lbl">類型</div>
       <div class="chips">${ISSUE_TYPES.map((t) => `<button class="chip" data-qt="${t}" aria-pressed="${f.type === t}">${t}</button>`).join('')}</div>
-      ${f.type === '缺備品' ? `<div class="lbl">缺哪些（勾選並調整數量）</div><div>${names.map((n) => `
-        <div class="sitem"><label><input type="checkbox" data-qi="${esc(n)}" ${f.items[n] ? 'checked' : ''}>${esc(n)}</label>
-        ${f.items[n] ? `<span class="qty"><button data-qm="${esc(n)}" aria-label="減少">−</button><b>${f.items[n]}</b><button data-qp="${esc(n)}" aria-label="增加">＋</button></span>` : ''}</div>`).join('') || '<p class="small muted">先選房號，或請管理員在備品清單建立品項。</p>'}
-        <input type="text" id="qExtra" placeholder="其他沒列出的品項，例如：吹風機" value="${esc(f.extra)}" style="margin-top:8px"></div>` : ''}
       <div class="lbl">說明</div>
-      <textarea id="qText" placeholder="${f.type === '遺留物' ? '例如：黑色充電線，已放櫃台抽屜' : '例如：浴室燈不亮、馬桶一直流水'}">${esc(f.text)}</textarea>
+      <textarea id="qText" placeholder="${f.type === '遺留物' ? '例如：黑色充電線，已放櫃台抽屜' : f.type === '缺備品' ? '例如：大浴巾 2 條、吹風機' : '例如：浴室燈不亮、馬桶一直流水'}">${esc(f.text)}</textarea>
       <div class="lbl">照片（最多 3 張）</div>
       ${f.photos.length < 3 ? `<label class="pick">📷 拍照或選照片<input type="file" id="qPhoto" accept="image/*" multiple></label>` : ''}
       <div class="thumbs">${f.photos.map((p, i) => `<img src="${p}" alt="照片 ${i + 1}" data-qx="${i}" title="點一下移除">`).join('')}</div>
@@ -1053,7 +963,7 @@ function openIssueForm(room) {
   };
   body.onchange = async (e) => {
     const t = e.target;
-    if (t.id === 'qRoom') { keep(); f.items = {}; return draw(); }
+    if (t.id === 'qRoom') { keep(); return draw(); }
     if (t.dataset.qi) { keep(); t.checked ? (f.items[t.dataset.qi] = 1) : delete f.items[t.dataset.qi]; return draw(); }
     if (t.id === 'qPhoto') {
       keep();
@@ -1153,7 +1063,6 @@ function renderAll() {
   if (S.tab === 'today') { renderTools(); renderToday(); }
   if (S.tab === 'issue') renderIssues();
   if (S.tab === 'book') renderBook();
-  if (S.tab === 'supply') renderSupply();
   if (S.tab === 'rooms') renderRooms();
 }
 // 回到畫面時更新（別人改過的會同步進來）
