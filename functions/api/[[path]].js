@@ -160,17 +160,23 @@ export async function onRequest(ctx) {
     // ---- 月報表 ----
     if (path === 'report' && m === 'GET') {
       const mo = url.searchParams.get('month') || '';
-      if (!/^\d{4}-\d{2}$/.test(mo)) return bad('參數錯誤');
-      const from = mo + '-01', to = mo + '-31';
+      const rg = url.searchParams.get('range') || '';
+      let from, to;
+      if (/^\d{4}-\d{2}$/.test(mo)) { from = mo + '-01'; to = mo + '-31'; }
+      else if (/^\d{4}(-H[12])?$/.test(rg)) { const y = rg.slice(0, 4); from = y + (rg.endsWith('H2') ? '-07-01' : '-01-01'); to = y + (rg.endsWith('H1') ? '-06-30' : '-12-31'); }
+      else return bad('參數錯誤');
       const { results: recs } = await env.DB.prepare('SELECT prop,date,room,data FROM records WHERE date BETWEEN ? AND ?').bind(from, to).all();
       const props = {};
       const daily = {};
+      const monthly = {};
       for (const r of recs) {
         const d = JSON.parse(r.data);
         const P = (props[r.prop] ||= { rooms: {}, tot: { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, doneMins: [] } });
         const R = (P.rooms[r.room] ||= { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, doneMins: [] });
         const day = (daily[r.date] ||= {});
         const D = (day[r.prop] ||= { need: 0, done: 0, checkin: 0 });
+        const MM = ((monthly[r.date.slice(0, 7)] ||= {})[r.prop] ||= { checkin: 0 });
+        if (d.kind === '入住' || d.kind === '退入') MM.checkin++;
         const add = (k) => { R[k]++; P.tot[k]++; };
         if (d.kind === '退房') add('checkout');
         if (d.kind === '退入') { add('turnover'); add('checkin'); D.checkin++; }
@@ -195,7 +201,7 @@ export async function onRequest(ctx) {
         if (i.status === 'open') open++; else if (i.resolved_at) hrs.push((i.resolved_at - i.created_at) / 3600e3);
       }
       return json({
-        month: mo, props, daily,
+        month: mo, range: rg, from, to, props, daily, monthly,
         issues: { total: iss.length, open, byType, byRoom, avgResolveHours: hrs.length ? Math.round((hrs.reduce((a, b) => a + b, 0) / hrs.length) * 10) / 10 : null },
       });
     }

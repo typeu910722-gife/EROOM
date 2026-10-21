@@ -27,7 +27,7 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--sans)}
 body{background:radial-gradient(120% 60% at 50% -10%,#221e17 0%,var(--bg) 60%) fixed var(--bg)}
 button,input,textarea,select{font:inherit;color:inherit}
-button{cursor:pointer}
+button{cursor:pointer;-webkit-appearance:none;appearance:none}
 :focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
 .wrap{max-width:720px;margin:0 auto;padding:0 18px calc(96px + var(--safe-b))}
 h2{font-family:var(--tc);font-weight:500;font-size:16px;letter-spacing:.2em;color:var(--gold);margin:30px 0 12px;display:flex;align-items:center;gap:12px}
@@ -60,7 +60,7 @@ section.page.on{display:block}
 .datepill svg{width:15px;height:15px;color:var(--gold)}
 .dayrow .date{font-family:var(--serif);font-size:20px;letter-spacing:.12em}
 .dayrow .wk{font-family:var(--tc);font-size:17px;letter-spacing:.12em}
-.dayrow .today{border:1px solid var(--line);background:none;color:var(--gold);border-radius:999px;font-size:12px;padding:2px 10px;letter-spacing:.1em}
+.today{-webkit-appearance:none;appearance:none;border:1px solid var(--line);background:none;color:var(--gold);border-radius:999px;font-size:12.5px;padding:3px 14px;letter-spacing:.12em}
 
 .notice{display:flex;align-items:center;gap:14px;max-width:420px;margin:0 auto 18px;border:1px solid var(--line);background:linear-gradient(180deg,var(--panel2),var(--panel));border-radius:var(--r);padding:12px 16px;position:relative}
 .notice .ic{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--gold);color:var(--gold);display:grid;place-items:center;font-family:var(--serif);font-size:16px}
@@ -193,6 +193,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .stat span{font-size:12px;color:var(--mute);letter-spacing:.06em}
 .bars{display:flex;align-items:flex-end;gap:2px;height:120px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 10px 22px}
 .bars .b{flex:1;position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.bars.wide{gap:8px;padding-top:22px}.bars .b .v{position:absolute;top:-17px;left:0;right:0;text-align:center;font-family:var(--serif);font-size:13px;color:var(--gold2)}
 .bars .b i{display:block;background:linear-gradient(180deg,var(--gold2),var(--gold));border-radius:2px 2px 0 0;opacity:.85}
 .bars .b em{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:11px;font-style:normal;color:var(--mute);font-family:var(--serif)}
 .tablewrap{overflow-x:auto}
@@ -266,6 +267,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <section class="page" id="p-rooms">
     <div class="subtabs" id="roomTabs"></div>
     <div id="rptWrap">
+      <div class="chips" id="rptType" style="justify-content:center;margin:4px 0 6px"></div>
       <div class="rpt-nav"><span class="mo" id="rptMo"></span>
         <div class="nav"><button class="iconbtn" id="rptPrev" aria-label="上個月">‹</button><button class="iconbtn" id="rptNext" aria-label="下個月">›</button></div></div>
       <div id="rptBody"></div>
@@ -385,7 +387,7 @@ const S = {
   bookKey: 'handbook',
   admin: ss.get('eroom.admin'),
   pending: ls.get('eroom.pending', []),
-  roomView: 'report', month: todayStr().slice(0, 7), reports: {}, me: ls.get('eroom.me', ''),
+  roomView: 'report', month: todayStr().slice(0, 7), rptType: 'm', rptYear: +todayStr().slice(0, 4), rptHalf: +todayStr().slice(5, 7) <= 6 ? 1 : 2, reports: {}, me: ls.get('eroom.me', ''),
 };
 
 function todayStr(d = new Date()) {
@@ -712,7 +714,7 @@ function renderBook() {
 // ---------- 房間 ----------
 function renderRooms() {
   if (!S.admin && S.roomView === 'line') S.roomView = 'report';
-  $('#roomTabs').innerHTML = [['report', '月報表'], ['info', '房間資料'], ...(S.admin ? [['line', 'LINE 設定']] : [])].map(([k, t]) => `<button class="chip" data-rview="${k}" aria-pressed="${S.roomView === k}">${t}</button>`).join('');
+  $('#roomTabs').innerHTML = [['report', '入住報表'], ['info', '房間資料'], ...(S.admin ? [['line', 'LINE 設定']] : [])].map(([k, t]) => `<button class="chip" data-rview="${k}" aria-pressed="${S.roomView === k}">${t}</button>`).join('');
   $('#rptWrap').hidden = S.roomView !== 'report';
   $('#infoWrap').hidden = S.roomView !== 'info';
   $('#lineWrap').hidden = S.roomView !== 'line';
@@ -805,30 +807,48 @@ async function saveDoc(k, data) {
 
 // ---------- 月報表 ----------
 const hm = (m) => m == null ? '—' : String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-function shiftMonth(n) { const [y, m] = S.month.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); S.month = d.toISOString().slice(0, 7); renderRooms(); }
+function shiftMonth(n) {
+  if (S.rptType === 'm') { const [y, m] = S.month.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); S.month = d.toISOString().slice(0, 7); }
+  else if (S.rptType === 'y') S.rptYear += n;
+  else { let h = S.rptHalf + n, y = S.rptYear; if (h > 2) { h = 1; y++; } if (h < 1) { h = 2; y--; } S.rptHalf = h; S.rptYear = y; S.rptType = h === 1 ? 'h1' : 'h2'; }
+  renderRooms();
+}
 async function renderReport() {
-  const [y, m] = S.month.split('-');
-  $('#rptMo').textContent = y + '/' + +m;
-  $('#rptNext').disabled = S.month >= todayStr().slice(0, 7);
-  let R = S.reports[S.month];
+  const T = S.rptType;
+  $('#rptType').innerHTML = [['m', '月'], ['h1', '上半年'], ['h2', '下半年'], ['y', '年']].map(([k, t]) => `<button class="chip" data-rtype="${k}" aria-pressed="${T === k || (k !== 'm' && k !== 'y' && (T === 'h1' || T === 'h2') && k === T)}">${t}</button>`).join('');
+  const cur = todayStr();
+  let key, label, months;
+  if (T === 'm') { const [y, m] = S.month.split('-'); key = 'month=' + S.month; label = y + '/' + +m; $('#rptNext').disabled = S.month >= cur.slice(0, 7); }
+  else if (T === 'y') { key = 'range=' + S.rptYear; label = S.rptYear + ' 年'; months = [...Array(12)].map((_, i) => i + 1); $('#rptNext').disabled = S.rptYear >= +cur.slice(0, 4); }
+  else { key = 'range=' + S.rptYear + '-H' + S.rptHalf; label = S.rptYear + (S.rptHalf === 1 ? ' 上半年' : ' 下半年'); months = S.rptHalf === 1 ? [1, 2, 3, 4, 5, 6] : [7, 8, 9, 10, 11, 12]; $('#rptNext').disabled = S.rptYear * 10 + S.rptHalf >= +cur.slice(0, 4) * 10 + (+cur.slice(5, 7) <= 6 ? 1 : 2); }
+  $('#rptMo').textContent = label;
+  let R = S.reports[key];
   if (!R) {
     $('#rptBody').innerHTML = '<p class="empty">讀取中⋯</p>';
-    try { R = S.reports[S.month] = await api('report?month=' + S.month); } catch (e) { $('#rptBody').innerHTML = `<p class="empty">讀不到報表：${esc(e.message)}</p>`; return; }
+    try { R = S.reports[key] = await api('report?' + key); } catch (e) { $('#rptBody').innerHTML = `<p class="empty">讀不到報表：${esc(e.message)}</p>`; return; }
     if (S.tab !== 'rooms' || S.roomView !== 'report') return;
   }
+  const [y, m] = T === 'm' ? S.month.split('-') : [String(S.rptYear), '1'];
   const P = R.props[S.prop];
-  if (!P) { $('#rptBody').innerHTML = `<p class="empty">${esc(PROPS[S.prop])} ${+m} 月還沒有紀錄。</p>`; return; }
+  if (!P) { $('#rptBody').innerHTML = `<p class="empty">${esc(PROPS[S.prop])}　${esc(label)}還沒有紀錄。</p>`; return; }
   const t = P.tot;
-  const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
-  const dd = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); return ((R.daily[k] || {})[S.prop] || {}).checkin || 0; });
+  let dd, lab;
+  if (T === 'm') {
+    const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
+    dd = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); return ((R.daily[k] || {})[S.prop] || {}).checkin || 0; });
+    lab = (i) => ((i + 1) % 5 === 0 || i === 0 ? String(i + 1) : '');
+  } else {
+    dd = months.map((mm) => ((R.monthly[S.rptYear + '-' + String(mm).padStart(2, '0')] || {})[S.prop] || {}).checkin || 0);
+    lab = (i) => months[i] + '月';
+  }
   const max = Math.max(1, ...dd);
   const rooms = Object.keys(P.rooms).sort((a, b) => (S.rooms[S.prop] || []).indexOf(a) - (S.rooms[S.prop] || []).indexOf(b) || a.localeCompare(b));
   const rmax = Math.max(1, ...rooms.map((r) => P.rooms[r].checkin));
   $('#rptBody').innerHTML = `
-    <div class="hero" style="margin:4px 0 18px"><div class="n">${t.checkin}</div><div class="u">當月總入住（間次）</div></div>
-    <h2>每天入住</h2>
-    <div class="bars" role="img" aria-label="每天入住的房間數">${dd.map((x, i) => `<div class="b" title="${+m}/${i + 1}：入住 ${x} 間">
-      <i style="height:${x / max * 100}%"></i>${(i + 1) % 5 === 0 || i === 0 ? `<em>${i + 1}</em>` : ''}</div>`).join('')}</div>
+    <div class="hero" style="margin:4px 0 18px"><div class="n">${t.checkin}</div><div class="u">${T === 'm' ? '當月' : T === 'y' ? '全年' : '半年'}總入住（間次）</div></div>
+    <h2>${T === 'm' ? '每天入住' : '每月入住'}</h2>
+    <div class="bars${T === 'm' ? '' : ' wide'}" role="img" aria-label="入住的房間數">${dd.map((x, i) => `<div class="b" title="${T === 'm' ? +m + '/' + (i + 1) : months[i] + '月'}：入住 ${x} 間">
+      ${T === 'm' ? '' : `<span class="v">${x || ''}</span>`}<i style="height:${x / max * 100}%"></i>${lab(i) ? `<em>${lab(i)}</em>` : ''}</div>`).join('')}</div>
     <h2>各房間入住次數</h2>
     <div class="list">${rooms.map((r) => { const n = P.rooms[r].checkin; return `<div class="rbar"><span class="no">${esc(r)}</span><span class="track"><i style="width:${n / rmax * 100}%"></i></span><b>${n}</b></div>`; }).join('')}</div>`;
 }
@@ -918,6 +938,8 @@ document.addEventListener('click', (e) => {
   const tool = t.closest('[data-tool]');
   if (tool) { S.tool = S.tool === tool.dataset.tool ? null : tool.dataset.tool; renderTools(); return; }
   if (t.closest('#textBtn')) { openText(); return; }
+  const rt = t.closest('[data-rtype]');
+  if (rt) { const k = rt.dataset.rtype; if (k === 'h1' || k === 'h2') S.rptHalf = k === 'h1' ? 1 : 2; if (k !== 'm') S.rptYear = S.rptYear || +todayStr().slice(0, 4); S.rptType = k; renderRooms(); return; }
   const rv = t.closest('[data-rview]');
   if (rv) { S.roomView = rv.dataset.rview; renderRooms(); return; }
   const tr = t.closest('[data-open]');
