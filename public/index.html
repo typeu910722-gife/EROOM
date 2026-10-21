@@ -189,6 +189,26 @@ textarea{min-height:90px;resize:vertical;line-height:1.6}
 .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px}
 .plate .warn{position:absolute;top:6px;left:auto;right:32px;font-size:13px}
 .counts a{color:var(--prio);font-weight:700;text-decoration:none}
+.rpt-nav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}
+.rpt-nav .mo{font-family:var(--plate);font-size:28px;font-weight:700}
+.rpt-nav .nav{margin-left:auto;display:flex;gap:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-bottom:14px}
+.stat{background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:10px 12px}
+.stat b{display:block;font-family:var(--plate);font-size:28px;line-height:1.1}
+.stat span{font-size:12.5px;color:var(--ink2)}
+.bars{display:flex;align-items:flex-end;gap:2px;height:120px;background:var(--sheet);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);padding:10px 10px 22px;position:relative}
+.bars .b{flex:1;position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.bars .b i{display:block;background:var(--todo);border-radius:2px 2px 0 0}
+.bars .b i.d{background:var(--done);border-radius:0}
+.bars .b em{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-style:normal;color:var(--ink2)}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--ink2);margin:6px 0 0}
+.rtable{width:100%;border-collapse:collapse;background:var(--sheet);border-radius:var(--r);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line);font-size:14px}
+.rtable th,.rtable td{padding:7px 8px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+.rtable th{font-size:12px;color:var(--ink2);font-weight:500;border-top:0}
+.rtable td:first-child,.rtable th:first-child{text-align:left;font-family:var(--plate);font-size:18px;font-weight:700}
+.rtable th:first-child{font-family:inherit;font-size:12px}
+.rtable tr.sum td{font-weight:700;background:#eef1ed}
+.tablewrap{overflow-x:auto}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:9px 8px 9px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
 .toast.on{display:flex}
 .toast button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:4px 12px}
@@ -256,8 +276,16 @@ textarea{min-height:90px;resize:vertical;line-height:1.6}
 
   <!-- 房間 -->
   <section class="page" id="p-rooms">
-    <div class="meta" id="roomsMeta" style="margin-top:16px"></div>
-    <div class="list" id="roomsBody"></div>
+    <div class="subtabs" id="roomTabs"></div>
+    <div id="rptWrap">
+      <div class="rpt-nav"><span class="mo" id="rptMo"></span>
+        <div class="nav"><button class="iconbtn" id="rptPrev" aria-label="上個月">‹</button><button class="iconbtn" id="rptNext" aria-label="下個月">›</button></div></div>
+      <div id="rptBody"></div>
+    </div>
+    <div id="infoWrap">
+      <div class="meta" id="roomsMeta"></div>
+      <div class="list" id="roomsBody"></div>
+    </div>
   </section>
 </main>
 
@@ -266,7 +294,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.6}
   <button data-tab="issue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>回報<span id="issueBadge"></span></button>
   <button data-tab="book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
   <button data-tab="supply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>備品</button>
-  <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>房間</button>
+  <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>報表</button>
 </nav>
 
 <div class="scrim" id="scrim"></div>
@@ -395,7 +423,7 @@ const S = {
   bookKey: 'handbook',
   admin: ss.get('eroom.admin'),
   pending: ls.get('eroom.pending', []),
-  issues: [], issueFilter: 'open', me: ls.get('eroom.me', ''),
+  issues: [], issueFilter: 'open', roomView: 'report', month: todayStr().slice(0, 7), reports: {}, me: ls.get('eroom.me', ''),
 };
 
 function todayStr(d = new Date()) {
@@ -773,6 +801,10 @@ function renderSupply() {
 
 // ---------- 房間 ----------
 function renderRooms() {
+  $('#roomTabs').innerHTML = [['report', '月報表'], ['info', '房間資料']].map(([k, t]) => `<button class="chip" data-rview="${k}" aria-pressed="${S.roomView === k}">${t}</button>`).join('');
+  $('#rptWrap').hidden = S.roomView !== 'report';
+  $('#infoWrap').hidden = S.roomView !== 'info';
+  if (S.roomView === 'report') return renderReport();
   const rooms = S.rooms[S.prop] || [];
   const info = doc('roominfo').rooms || {};
   $('#roomsMeta').innerHTML = `<span>${esc(PROPS[S.prop])}・${rooms.length} 間</span>${S.admin ? '<button class="btn" id="editRoomList">修改房號</button>' : ''}`;
@@ -858,6 +890,59 @@ async function saveDoc(k, data) {
     if (e.status === 401) { S.admin = ''; ss.set('eroom.admin', ''); renderLock(); }
     toast(e.message, false, true); return false;
   }
+}
+
+// ---------- 月報表 ----------
+const hm = (m) => m == null ? '—' : String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+function shiftMonth(n) { const [y, m] = S.month.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); S.month = d.toISOString().slice(0, 7); renderRooms(); }
+async function renderReport() {
+  const [y, m] = S.month.split('-');
+  $('#rptMo').textContent = y + '/' + +m;
+  $('#rptNext').disabled = S.month >= todayStr().slice(0, 7);
+  let R = S.reports[S.month];
+  if (!R) {
+    $('#rptBody').innerHTML = '<p class="empty">讀取中⋯</p>';
+    try { R = S.reports[S.month] = await api('report?month=' + S.month); } catch (e) { $('#rptBody').innerHTML = `<p class="empty">讀不到報表：${esc(e.message)}</p>`; return; }
+    if (S.tab !== 'rooms' || S.roomView !== 'report') return;
+  }
+  const P = R.props[S.prop];
+  if (!P) { $('#rptBody').innerHTML = `<p class="empty">${esc(PROPS[S.prop])} ${+m} 月還沒有紀錄。</p>`; return; }
+  const t = P.tot;
+  const rate = t.need ? Math.round(t.done / t.need * 100) : 0;
+  const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
+  const dd = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); return (R.daily[k] || {})[S.prop] || { need: 0, done: 0 }; });
+  const max = Math.max(1, ...dd.map((x) => x.need));
+  const rooms = Object.keys(P.rooms).sort((a, b) => (S.rooms[S.prop] || []).indexOf(a) - (S.rooms[S.prop] || []).indexOf(b) || a.localeCompare(b));
+  const I = R.issues;
+  const roomIss = Object.entries(I.byRoom).filter(([k]) => k.startsWith(S.prop + ':')).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  $('#rptBody').innerHTML = `
+    <div class="stats">
+      <div class="stat"><b>${t.need}</b><span>要掃（間次）</span></div>
+      <div class="stat"><b style="color:var(--done)">${t.done}</b><span>掃好了・${rate}%</span></div>
+      <div class="stat"><b style="color:var(--prio)">${t.turnover}</b><span>退房→入住</span></div>
+      <div class="stat"><b>${t.checkout}</b><span>退房</span></div>
+      <div class="stat"><b>${t.stayClean}<small style="font-size:16px;color:var(--ink2)">/${t.stay}</small></b><span>續住有掃／續住</span></div>
+      <div class="stat"><b style="color:var(--in)">${t.checkin}</b><span>入住</span></div>
+      <div class="stat"><b>${hm(t.avgDone)}</b><span>平均掃好時間</span></div>
+    </div>
+    <h2 style="margin-top:6px">每天要掃的房間數</h2>
+    <div class="bars" role="img" aria-label="每天要掃與掃好的房間數">${dd.map((x, i) => `<div class="b" title="${+m}/${i + 1}：要掃 ${x.need}，掃好 ${x.done}">
+      <i style="height:${(x.need - Math.min(x.done, x.need)) / max * 100}%"></i><i class="d" style="height:${Math.min(x.done, x.need) / max * 100}%"></i>${(i + 1) % 5 === 0 || i === 0 ? `<em>${i + 1}</em>` : ''}</div>`).join('')}</div>
+    <div class="legend"><span><i class="dot" style="background:var(--done)"></i>掃好了</span><span><i class="dot" style="background:var(--todo)"></i>沒按掃好</span></div>
+    <h2>各房間</h2>
+    <div class="tablewrap"><table class="rtable"><thead><tr><th>房號</th><th>退房</th><th>退→入</th><th>續住掃</th><th>要掃</th><th>掃好</th><th>平均掃好</th></tr></thead><tbody>
+      ${rooms.map((r) => { const x = P.rooms[r]; return `<tr><td>${esc(r)}</td><td>${x.checkout}</td><td>${x.turnover}</td><td>${x.stayClean}</td><td>${x.need}</td><td>${x.done}</td><td>${hm(x.avgDone)}</td></tr>`; }).join('')}
+      <tr class="sum"><td style="font-family:inherit;font-size:14px">合計</td><td>${t.checkout}</td><td>${t.turnover}</td><td>${t.stayClean}</td><td>${t.need}</td><td>${t.done}</td><td>${hm(t.avgDone)}</td></tr>
+    </tbody></table></div>
+    <h2>問題回報（兩館合計）</h2>
+    <div class="stats">
+      <div class="stat"><b>${I.total}</b><span>件回報</span></div>
+      <div class="stat"><b style="color:var(--prio)">${I.open}</b><span>還沒處理</span></div>
+      <div class="stat"><b>${I.avgResolveHours == null ? '—' : I.avgResolveHours}</b><span>平均處理（小時）</span></div>
+    </div>
+    ${Object.keys(I.byType).length ? `<p class="small">${Object.entries(I.byType).map(([k, v]) => `${esc(k)} ${v}`).join('、')}</p>` : ''}
+    ${roomIss.length ? `<p class="small muted">${esc(PROPS[S.prop])}回報最多：${roomIss.map(([k, v]) => `${esc(k.split(':')[1] === 'PUBLIC' ? '公共' : k.split(':')[1])}（${v}）`).join('、')}</p>` : ''}
+    <p class="small muted" style="margin-top:16px">「掃好了」從新版開始記錄時間；舊版大多沒有按掃好，所以 10 月以前的完成率偏低。</p>`;
 }
 
 // ---------- 回報 ----------
@@ -1000,12 +1085,14 @@ $('#toastUndo').onclick = () => { $('#toast').classList.remove('on'); undo(); };
 document.addEventListener('click', (e) => {
   const t = e.target;
   const tab = t.closest('[data-tab]');
-  if (tab) { $('#toast').classList.remove('on'); S.tab = tab.dataset.tab; document.querySelectorAll('nav.tabs button').forEach((b) => b.toggleAttribute('aria-current', false)); tab.setAttribute('aria-current', 'page'); document.querySelectorAll('section.page').forEach((s) => s.classList.toggle('on', s.id === 'p-' + S.tab)); renderAll(); scrollTo(0, 0); return; }
+  if (tab) { $('#toast').classList.remove('on'); S.tab = tab.dataset.tab; if (S.tab === 'rooms') S.reports = {}; document.querySelectorAll('nav.tabs button').forEach((b) => b.toggleAttribute('aria-current', false)); tab.setAttribute('aria-current', 'page'); document.querySelectorAll('section.page').forEach((s) => s.classList.toggle('on', s.id === 'p-' + S.tab)); renderAll(); scrollTo(0, 0); return; }
   const pb = t.closest('[data-prop]');
   if (pb) { selectProp(pb.dataset.prop); return; }
   const tool = t.closest('[data-tool]');
   if (tool) { S.tool = S.tool === tool.dataset.tool ? null : tool.dataset.tool; renderTools(); return; }
   if (t.closest('#textBtn')) { openText(); return; }
+  const rv = t.closest('[data-rview]');
+  if (rv) { S.roomView = rv.dataset.rview; renderRooms(); return; }
   const rs = t.closest('[data-resolve]');
   if (rs) { resolveIssue(+rs.dataset.resolve, rs.dataset.to); return; }
   const fi = t.closest('[data-ifilter]');
@@ -1031,6 +1118,8 @@ document.addEventListener('click', (e) => {
   if (t.closest('#editRoomList')) { openRoomList(); return; }
 });
 $('#prevDay').onclick = () => shiftDate(-1);
+$('#rptPrev').onclick = () => shiftMonth(-1);
+$('#rptNext').onclick = () => shiftMonth(1);
 $('#nextDay').onclick = () => shiftDate(1);
 $('#goToday').onclick = () => { S.date = todayStr(); refresh(); };
 async function shiftDate(n) { S.date = addDays(S.date, n); refresh(); }

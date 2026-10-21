@@ -154,6 +154,49 @@ export async function onRequest(ctx) {
       }
     }
 
+    // ---- 月報表 ----
+    if (path === 'report' && m === 'GET') {
+      const mo = url.searchParams.get('month') || '';
+      if (!/^\d{4}-\d{2}$/.test(mo)) return bad('參數錯誤');
+      const from = mo + '-01', to = mo + '-31';
+      const { results: recs } = await env.DB.prepare('SELECT prop,date,room,data FROM records WHERE date BETWEEN ? AND ?').bind(from, to).all();
+      const props = {};
+      const daily = {};
+      for (const r of recs) {
+        const d = JSON.parse(r.data);
+        const P = (props[r.prop] ||= { rooms: {}, tot: { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, doneMins: [] } });
+        const R = (P.rooms[r.room] ||= { checkout: 0, turnover: 0, stay: 0, stayClean: 0, checkin: 0, need: 0, done: 0, doneMins: [] });
+        const day = (daily[r.date] ||= {});
+        const D = (day[r.prop] ||= { need: 0, done: 0, checkin: 0 });
+        const add = (k) => { R[k]++; P.tot[k]++; };
+        if (d.kind === '退房') add('checkout');
+        if (d.kind === '退入') { add('turnover'); add('checkin'); D.checkin++; }
+        if (d.kind === '入住') { add('checkin'); D.checkin++; }
+        if (d.kind === '續住') { add('stay'); if (d.status === 'todo' || d.status === 'done') add('stayClean'); }
+        if (d.kind && d.kind !== '入住' && (d.status === 'todo' || d.status === 'done')) { add('need'); D.need++; }
+        if (d.status === 'done') {
+          add('done'); D.done++;
+          if (d.doneAt) { const t = new Date(d.doneAt + 8 * 3600e3); const mins = t.getUTCHours() * 60 + t.getUTCMinutes(); R.doneMins.push(mins); P.tot.doneMins.push(mins); }
+        }
+      }
+      const avg = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
+      for (const p in props) {
+        props[p].tot.avgDone = avg(props[p].tot.doneMins); delete props[p].tot.doneMins;
+        for (const r in props[p].rooms) { const R = props[p].rooms[r]; R.avgDone = avg(R.doneMins); delete R.doneMins; }
+      }
+      const { results: iss } = await env.DB.prepare('SELECT prop,room,type,status,created_at,resolved_at FROM issues WHERE date BETWEEN ? AND ?').bind(from, to).all();
+      const byType = {}, byRoom = {}; let open = 0; const hrs = [];
+      for (const i of iss) {
+        byType[i.type] = (byType[i.type] || 0) + 1;
+        const k = i.prop + ':' + i.room; byRoom[k] = (byRoom[k] || 0) + 1;
+        if (i.status === 'open') open++; else if (i.resolved_at) hrs.push((i.resolved_at - i.created_at) / 3600e3);
+      }
+      return json({
+        month: mo, props, daily,
+        issues: { total: iss.length, open, byType, byRoom, avgResolveHours: hrs.length ? Math.round((hrs.reduce((a, b) => a + b, 0) / hrs.length) * 10) / 10 : null },
+      });
+    }
+
     // ---- 問題回報（含照片、缺備品）----
     if (path === 'issues') {
       if (m === 'GET') {
