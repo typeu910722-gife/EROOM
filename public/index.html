@@ -196,6 +196,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .bars .b i{display:block;background:linear-gradient(180deg,var(--gold2),var(--gold));border-radius:2px 2px 0 0;opacity:.85}
 .bars .b em{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:11px;font-style:normal;color:var(--mute);font-family:var(--serif)}
 .tablewrap{overflow-x:auto}
+.rbar{display:flex;align-items:center;gap:12px;padding:7px 16px;border-top:1px solid var(--line2)}.rbar:first-child{border-top:0}
+.rbar .no{font-family:var(--serif);font-weight:600;font-size:22px;width:52px;color:var(--gold2)}
+.rbar .track{flex:1;height:8px;border-radius:4px;background:var(--panel2)}.rbar .track i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.rbar b{font-family:var(--serif);font-size:20px;font-weight:600;width:30px;text-align:right}
 .rtable{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);font-size:14px}
 .rtable th,.rtable td{padding:7px 9px;text-align:right;border-top:1px solid var(--line2);white-space:nowrap}
 .rtable th{font-size:12px;color:var(--gold);font-weight:400;letter-spacing:.08em;border-top:0}
@@ -816,26 +820,17 @@ async function renderReport() {
   if (!P) { $('#rptBody').innerHTML = `<p class="empty">${esc(PROPS[S.prop])} ${+m} 月還沒有紀錄。</p>`; return; }
   const t = P.tot;
   const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
-  const dd = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); return (R.daily[k] || {})[S.prop] || { need: 0, done: 0 }; });
-  const max = Math.max(1, ...dd.map((x) => x.need));
+  const dd = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); return ((R.daily[k] || {})[S.prop] || {}).checkin || 0; });
+  const max = Math.max(1, ...dd);
   const rooms = Object.keys(P.rooms).sort((a, b) => (S.rooms[S.prop] || []).indexOf(a) - (S.rooms[S.prop] || []).indexOf(b) || a.localeCompare(b));
+  const rmax = Math.max(1, ...rooms.map((r) => P.rooms[r].checkin));
   $('#rptBody').innerHTML = `
-    <div class="stats">
-      <div class="stat"><b>${t.need}</b><span>要掃（間次）</span></div>
-      <div class="stat"><b style="color:var(--prio)">${t.turnover}</b><span>退房→入住</span></div>
-      <div class="stat"><b>${t.checkout}</b><span>退房</span></div>
-      <div class="stat"><b>${t.stayClean}<small style="font-size:16px;color:var(--ink2)">/${t.stay}</small></b><span>續住有掃／續住</span></div>
-      <div class="stat"><b style="color:var(--in)">${t.checkin}</b><span>入住</span></div>
-    </div>
-    <h2 style="margin-top:6px">每天要掃的房間數</h2>
-    <div class="bars" role="img" aria-label="每天要掃的房間數">${dd.map((x, i) => `<div class="b" title="${+m}/${i + 1}：要掃 ${x.need}">
-      <i style="height:${x.need / max * 100}%"></i>${(i + 1) % 5 === 0 || i === 0 ? `<em>${i + 1}</em>` : ''}</div>`).join('')}</div>
-    <h2>各房間</h2>
-    <div class="tablewrap"><table class="rtable"><thead><tr><th>房號</th><th>退房</th><th>退→入</th><th>續住掃</th><th>要掃</th><th>入住</th></tr></thead><tbody>
-      ${rooms.map((r) => { const x = P.rooms[r]; return `<tr><td>${esc(r)}</td><td>${x.checkout}</td><td>${x.turnover}</td><td>${x.stayClean}</td><td>${x.need}</td><td>${x.checkin}</td></tr>`; }).join('')}
-      <tr class="sum"><td style="font-family:inherit;font-size:14px">合計</td><td>${t.checkout}</td><td>${t.turnover}</td><td>${t.stayClean}</td><td>${t.need}</td><td>${t.checkin}</td></tr>
-    </tbody></table></div>
-`;
+    <div class="hero" style="margin:4px 0 18px"><div class="n">${t.checkin}</div><div class="u">當月總入住（間次）</div></div>
+    <h2>每天入住</h2>
+    <div class="bars" role="img" aria-label="每天入住的房間數">${dd.map((x, i) => `<div class="b" title="${+m}/${i + 1}：入住 ${x} 間">
+      <i style="height:${x / max * 100}%"></i>${(i + 1) % 5 === 0 || i === 0 ? `<em>${i + 1}</em>` : ''}</div>`).join('')}</div>
+    <h2>各房間入住次數</h2>
+    <div class="list">${rooms.map((r) => { const n = P.rooms[r].checkin; return `<div class="rbar"><span class="no">${esc(r)}</span><span class="track"><i style="width:${n / rmax * 100}%"></i></span><b>${n}</b></div>`; }).join('')}</div>`;
 }
 
 // ---------- LINE 設定（管理員）----------
