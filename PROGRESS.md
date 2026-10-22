@@ -36,5 +36,12 @@
 - [x] cron/worker.js：Cloudflare Worker eroom-cron，每天 02:50 UTC 呼叫 daily
 - [ ] 使用者建立新官方帳號、開 Messaging API、貼 secret／token、設 webhook、拉進群組
 
+## 2026-10-22
+- [x] /api/text/set 支援多天（每行日期開頭）
+- [x] /api/text/book：訂房（房號＋入住日期區間）自動拆成每天入住／續住／退房，自動合併退房→入住，preview=1 預覽
+- [x] 未登記提醒：私訊官方帳號「綁定管理員」→ settings.line_admin；10:30 /api/line/check 提醒；10:50 未登記的館不傳群組並通知管理員
+- [x] eroom-cron 加 30 2 * * *
+- 員工排班（第 7 項）不做在 E·ROOM，之後由「到班Go」做，並設計成可接各公司自有系統
+
 ## 待辦
 - 每天早上把要掃的房間推送到 LINE

@@ -24,6 +24,29 @@ const WORDS = [
   [/不用掃|免掃/, { status: '' }],
   [/清空|清除|取消|空房/, { kind: '', status: '', note: '' }],
 ];
+// 文字裡的日期：10/22、2026/10/22、2026-10-22（年份省略＝今年；比今天早超過半年就當明年）
+function toDate(y, mo, da) {
+  const now = new Date(Date.now() + 8 * 3600e3);
+  let yy = y ? +y : now.getUTCFullYear();
+  if (!y && +mo < now.getUTCMonth() + 1 - 6) yy++;
+  const d = new Date(Date.UTC(yy, +mo - 1, +da));
+  if (d.getUTCMonth() !== +mo - 1) return null;
+  return d.toISOString().slice(0, 10);
+}
+const addDay = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+// 依「日期開頭的行」切段：10/22 退房 201 ⏎ 10/23 續住 201
+function splitByDate(text, defaultDate) {
+  const segs = []; let cur = { d: defaultDate, t: '' };
+  for (const ln of String(text).split(/\n|；|;/)) {
+    const m = ln.match(/^\s*(?:(\d{4})[\/\-.])?(\d{1,2})[\/\-.](\d{1,2})(?:\s*[（(][^）)]*[）)])?\s*[:：]?\s*(.*)$/);
+    const d = m && toDate(m[1], m[2], m[3]);
+    if (d) { if (cur.t.trim()) segs.push(cur); cur = { d, t: m[4] || '' }; }
+    else cur.t += ' ' + ln;
+  }
+  if (cur.t.trim()) segs.push(cur);
+  return segs;
+}
+
 function parseText(text, rooms) {
   const set = new Map(rooms.map((r) => [r.toUpperCase(), r]));
   const tokens = String(text).replace(/[，,、；;：:\n\/.。+＋]+/g, ' ').split(/\s+/).filter(Boolean);
@@ -187,26 +210,107 @@ export async function onRequest(ctx) {
       const key = await env.DB.prepare("SELECT v FROM settings WHERE k='bot_key'").first();
       if (!key || url.searchParams.get('k') !== key.v) return txt('金鑰錯誤', 401);
       const pp = url.searchParams.get('p');
-      const d = url.searchParams.get('d') || twDate(Date.now());
+      const d0 = url.searchParams.get('d') || twDate(Date.now());
       let t = url.searchParams.get('t') || '';
       if (m === 'POST') t = (await request.text()) || t;
       if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）或 eryanglou（貳洋樓）', 400);
-      if (!DATE_RE.test(d)) return txt('d 日期格式要像 2026-10-21', 400);
+      if (!DATE_RE.test(d0)) return txt('d 日期格式要像 2026-10-21', 400);
       const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
       const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
-      const { items, unknown } = parseText(t, rooms);
-      if (!items.length && url.searchParams.get('mode') !== 'replace') return txt('沒有辨識到房號。寫法例如：退房 201 203 退入 305 續住 501 入住 306' + (unknown.length ? `\n不認得的房號：${unknown.join('、')}` : ''), 400);
+      const replace = url.searchParams.get('mode') === 'replace';
+      const segs = splitByDate(t, d0);
+      if (segs.length > 31) return txt('一次最多登記 31 天', 400);
       const now = Date.now();
-      const stmts = [];
-      if (url.searchParams.get('mode') === 'replace') {
-        const touched = new Set(items.map((i) => i.room));
-        for (const r of rooms) if (!touched.has(r)) stmts.push(await upsertRecord(env, pp, d, r, { kind: '', status: '', note: '' }, now));
+      const stmts = [], out = [], allUnknown = [];
+      for (const sg of segs) {
+        const { items, unknown } = parseText(sg.t, rooms);
+        allUnknown.push(...unknown);
+        if (!items.length && !replace) continue;
+        if (replace) { const touched = new Set(items.map((i) => i.room)); for (const r of rooms) if (!touched.has(r)) stmts.push(await upsertRecord(env, pp, sg.d, r, { kind: '', status: '', note: '' }, now)); }
+        for (const it of items) stmts.push(await upsertRecord(env, pp, sg.d, it.room, it.data, now));
+        out.push(`${sg.d}：${items.map((i) => i.room + ' ' + (i.data.kind === '續住' ? (i.data.status ? '續住要掃' : '續住不用掃') : i.data.kind ? ({ '退入': '退房→入住' })[i.data.kind] || i.data.kind : 'kind' in i.data ? '清空' : '不用掃')).join('、') || '（清空）'}`);
       }
-      for (const it of items) stmts.push(await upsertRecord(env, pp, d, it.room, it.data, now));
+      if (!out.length) return txt('沒有辨識到房號。寫法例如：退房 201 203 退入 305 續住 501 入住 306\n多天：每一行用日期開頭，例如「10/22 退房 201」' + (allUnknown.length ? `\n不認得的房號：${allUnknown.join('、')}` : ''), 400);
       if (stmts.length) await env.DB.batch(stmts);
       const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
-      return txt(`已登記 ${name} ${d}：${items.map((i) => i.room + ' ' + (i.data.kind === '續住' ? (i.data.status ? '續住要掃' : '續住不用掃') : i.data.kind ? ({ '退入': '退房→入住' })[i.data.kind] || i.data.kind : 'kind' in i.data ? '清空' : '不用掃')).join('、')}` +
-        (unknown.length ? `\n不認得的房號（沒寫入）：${unknown.join('、')}` : '') + `\n網站：https://eroom.yzprojecttw.com/?p=${pp}&d=${d}`);
+      return txt(`已登記 ${name}\n${out.join('\n')}` + (allUnknown.length ? `\n不認得的房號（沒寫入）：${[...new Set(allUnknown)].join('、')}` : '') + `\n網站：https://eroom.yzprojecttw.com/?p=${pp}&d=${segs[0].d}`);
+    }
+
+    // ---- 訂房自動拆成每天房況（給 Grok 用）----
+    // /api/text/book?k=金鑰&p=ersu&t=201 10/22-24 ⏎ 305 10/22 ⏎ 201/501 10/25-26
+    // 每行：房號（可用 / 連多間）＋入住日期，「10/22-24」＝住 22、23、24 三晚，25 退房；只寫「10/22」＝住一晚
+    // 入住當天＝入住，中間＝續住（不用掃），退房當天＝退房（要掃）；同一天又退又入＝退房→入住
+    // preview=1 只預覽不寫入
+    if (path === 'text/book' && (m === 'GET' || m === 'POST')) {
+      const key = await env.DB.prepare("SELECT v FROM settings WHERE k='bot_key'").first();
+      if (!key || url.searchParams.get('k') !== key.v) return txt('金鑰錯誤', 401);
+      const pp = url.searchParams.get('p');
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）或 eryanglou（貳洋樓）', 400);
+      let t = url.searchParams.get('t') || '';
+      if (m === 'POST') t = (await request.text()) || t;
+      const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
+      const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
+      const roomSet = new Map(rooms.map((r) => [r.toUpperCase(), r]));
+      const ev = {}; // date -> room -> {in, stay, out}
+      const add = (d, r, k) => { ((ev[d] ||= {})[r] ||= {})[k] = true; };
+      const bad2 = [], books = [];
+      for (const raw of String(t).split(/\n|；|;/)) {
+        const ln = raw.trim(); if (!ln) continue;
+        const dm = ln.match(/(?<![0-9A-Za-z])(?:(\d{4})[\/.\-])?(\d{1,2})[\/.](\d{1,2})(?![0-9])(?:\s*[-~～到至]\s*(?:(\d{1,2})[\/.])?(\d{1,2})(?![0-9]))?/);
+        if (!dm) { bad2.push(ln + '（找不到日期）'); continue; }
+        const start = toDate(dm[1], dm[2], dm[3]);
+        let end = start;
+        if (dm[5]) {
+          const endMo = dm[4] || dm[2]; end = toDate(dm[1], endMo, dm[5]);
+          if (end && end < start) {
+            if (!dm[4]) { const x = new Date(start + 'T00:00:00Z'); end = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, +dm[5])).toISOString().slice(0, 10); }
+            else { const y = +start.slice(0, 4) + 1; end = toDate(String(y), endMo, dm[5]); }
+          }
+        }
+        if (!start || !end || end < start) { bad2.push(ln + '（日期不對）'); continue; }
+        if ((Date.parse(end) - Date.parse(start)) / 864e5 > 30) { bad2.push(ln + '（超過 31 晚）'); continue; }
+        const rest = ln.replace(dm[0], ' ');
+        const rs = [...new Set((rest.match(/[0-9A-Za-z]+/g) || []).map((x) => roomSet.get(x.toUpperCase())).filter(Boolean))];
+        if (!rs.length) { bad2.push(ln + '（找不到房號）'); continue; }
+        for (const r of rs) {
+          add(start, r, 'in');
+          for (let d = addDay(start, 1); d <= end; d = addDay(d, 1)) add(d, r, 'stay');
+          add(addDay(end, 1), r, 'out');
+          books.push(`${r} ${start.slice(5).replace('-', '/')}～${end.slice(5).replace('-', '/')}（${(Date.parse(end) - Date.parse(start)) / 864e5 + 1} 晚）`);
+        }
+      }
+      const dates = Object.keys(ev).sort();
+      if (!dates.length) return txt('沒有可登記的訂房。每行寫「房號 入住日期」，例如：\n201 10/22-24\n305 10/22\n201/501 10/25-26' + (bad2.length ? '\n\n看不懂的行：\n' + bad2.join('\n') : ''), 400);
+      const { results } = await env.DB.prepare('SELECT date,room,data FROM records WHERE prop=? AND date BETWEEN ? AND ?').bind(pp, dates[0], dates[dates.length - 1]).all();
+      const old = {}; for (const r of results) (old[r.date] ||= {})[r.room] = JSON.parse(r.data);
+      const KL = { '退入': '退房→入住', '退房': '退房', '入住': '入住', '續住': '續住' };
+      const now = Date.now(); const stmts = [], lines = [], warn = [];
+      for (const d of dates) {
+        const parts = [];
+        for (const r of Object.keys(ev[d]).sort((a, b) => rooms.indexOf(a) - rooms.indexOf(b))) {
+          const e = ev[d][r]; const o = (old[d] || {})[r] || {};
+          let data;
+          if (e.stay) {
+            if (e.in || e.out) warn.push(`${d} ${r}：訂房重疊（同一天又續住又入住／退房），已當續住`);
+            data = { kind: '續住', status: o.kind === '續住' ? (o.status || '') : '' };
+            if (o.kind && o.kind !== '續住') warn.push(`${d} ${r}：原本是${KL[o.kind] || o.kind}，改成續住`);
+          } else {
+            const hasIn = e.in || o.kind === '入住' || o.kind === '退入';
+            const hasOut = e.out || o.kind === '退房' || o.kind === '退入';
+            data = hasIn && hasOut ? { kind: '退入', status: 'todo' } : hasIn ? { kind: '入住', status: '' } : { kind: '退房', status: 'todo' };
+            if (o.kind === '續住') warn.push(`${d} ${r}：原本是續住，改成${KL[data.kind]}`);
+          }
+          parts.push(`${r} ${KL[data.kind]}`);
+          stmts.push(await upsertRecord(env, pp, d, r, data, now));
+        }
+        lines.push(`${d}：${parts.join('、')}`);
+      }
+      const preview = url.searchParams.get('preview') === '1';
+      if (!preview) await env.DB.batch(stmts);
+      const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
+      return txt(`${preview ? '預覽（還沒寫入）' : '已登記'} ${name} 訂房 ${books.length} 筆\n${books.join('\n')}\n\n每天房況：\n${lines.join('\n')}` +
+        (warn.length ? `\n\n注意：\n${warn.join('\n')}` : '') + (bad2.length ? `\n\n看不懂的行（沒寫入）：\n${bad2.join('\n')}` : '') +
+        `\n\n網站：https://eroom.yzprojecttw.com/?p=${pp}&d=${dates[0]}`);
     }
 
     // ---- 純文字查詢（給 Grok 等讀取用，一次拿多天，不用操作網頁）----
@@ -438,22 +542,40 @@ async function targets(env) {
   return t;
 }
 
+async function unregistered(env, date) {
+  const out = [];
+  for (const p of PROPS) {
+    const r = await env.DB.prepare("SELECT count(*) n FROM records WHERE prop=? AND date=? AND json_extract(data,'$.kind') <> ''").bind(p, date).first();
+    if (!r || !r.n) out.push(p);
+  }
+  return out;
+}
+async function alertAdmin(env, text) {
+  const token = await getS(env, 'line_token'), admin = await getS(env, 'line_admin');
+  if (!token || !admin) return false;
+  await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: admin, messages: [{ type: 'text', text }] }) });
+  return true;
+}
+const mdw = (date) => { const d = new Date(date + 'T00:00:00Z'); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK[d.getUTCDay()]}）`; };
+
 async function pushDaily(env, { force = false, only = null } = {}) {
   const token = await getS(env, 'line_token');
   if (!token) throw new Error('還沒設定 LINE 金鑰');
   const tg = await targets(env);
   const date = twDate(Date.now());
   if (!force && (await getS(env, 'line_enabled')) !== '1') return { skipped: '每日推播已關閉' };
-  const sent = [], skipped = [];
+  const sent = [], skipped = [], unreg = [];
   for (const p of PROPS) {
     if (only && p !== only) continue;
     if (!tg[p]) { skipped.push(PROP_NAME[p] + '：沒有綁定群組'); continue; }
     if (!force && (await getS(env, 'line_last_' + p)) === date) { skipped.push(PROP_NAME[p] + '：今天已經傳過'); continue; }
+    if (!force && (await unregistered(env, date)).includes(p)) { skipped.push(PROP_NAME[p] + '：今天還沒登記'); unreg.push(PROP_NAME[p]); continue; }
     const text = await dailyText(env, date, [p]);
     await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: tg[p], messages: [{ type: 'text', text }] }) });
     if (!force) await setS(env, 'line_last_' + p, date);
     sent.push(PROP_NAME[p]);
   }
+  if (unreg.length) { try { await alertAdmin(env, `⚠️ ${mdw(date)} 10:50 沒有傳送：${unreg.join('、')}今天還沒登記房況。\n登記好後到 E·ROOM「報表 → LINE 設定」按「傳一則今日打掃」補傳。`); } catch {} }
   if (!sent.length && force) throw new Error(skipped.join('；') || '沒有可傳送的群組');
   return { ok: true, date, sent, skipped };
 }
@@ -470,7 +592,16 @@ async function line(sub, m, request, env, url) {
     let changed = false;
     for (const ev of body.events || []) {
       const gid = ev.source && ev.source.groupId;
-      if (!gid) continue;
+      if (!gid) {
+        // 一對一聊天：傳「綁定管理員」→ 之後未登記提醒會傳給這個人
+        const uid = ev.source && ev.source.type === 'user' && ev.source.userId;
+        const tx = ev.type === 'message' && ev.message?.type === 'text' ? (ev.message.text || '').trim() : '';
+        if (uid && /綁定管理員/.test(tx)) {
+          await setS(env, 'line_admin', uid);
+          if (token && ev.replyToken) { try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: '已綁定為 E·ROOM 管理員。每天 10:30 還沒登記房況會提醒你，10:50 沒傳出去也會通知你。' }] }) }); } catch {} }
+        }
+        continue;
+      }
       if (ev.type === 'leave') { delete gs[gid]; changed = true; for (const p of PROPS) if ((await getS(env, 'line_target_' + p)) === gid) await setS(env, 'line_target_' + p, ''); continue; }
       const text = ev.type === 'message' && ev.message?.type === 'text' ? (ev.message.text || '').trim() : '';
       if (ev.type !== 'join' && !/綁定/.test(text)) continue;
@@ -500,6 +631,18 @@ async function line(sub, m, request, env, url) {
     try { return json(await pushDaily(env)); } catch (e) { return bad(e.message, 500); }
   }
 
+  // 排程 10:30：還沒登記就提醒管理員
+  if (sub === 'check' && m === 'POST') {
+    const key = await getS(env, 'cron_key');
+    if (!key || request.headers.get('x-cron-key') !== key) return bad('金鑰錯誤', 401);
+    if ((await getS(env, 'line_enabled')) !== '1') return json({ skipped: '每日推播已關閉' });
+    const date = twDate(Date.now());
+    const u = await unregistered(env, date);
+    if (!u.length) return json({ ok: true, all: '都登記了' });
+    try { const sent = await alertAdmin(env, `⚠️ ${mdw(date)} ${u.map((p) => PROP_NAME[p]).join('、')}還沒登記房況。\n10:50 會自動傳打掃清單到群組，請在這之前登記。`); return json({ ok: true, unreg: u, alerted: sent }); }
+    catch (e) { return bad(e.message, 500); }
+  }
+
   // 以下需要管理員
   if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
 
@@ -508,7 +651,7 @@ async function line(sub, m, request, env, url) {
       hasSecret: !!(await getS(env, 'line_secret')), hasToken: !!(await getS(env, 'line_token')),
       groups: await groups(env), targets: await targets(env),
       enabled: (await getS(env, 'line_enabled')) === '1', last: { ersu: (await getS(env, 'line_last_ersu')) || '', eryanglou: (await getS(env, 'line_last_eryanglou')) || '' },
-      webhook: url.origin + '/api/line/webhook',
+      webhook: url.origin + '/api/line/webhook', adminBound: !!(await getS(env, 'line_admin')),
     });
   }
   if (sub === 'config' && (m === 'PUT' || m === 'POST')) {
@@ -522,6 +665,7 @@ async function line(sub, m, request, env, url) {
     }
     if (b.targets && typeof b.targets === 'object') for (const p of PROPS) if (typeof b.targets[p] === 'string') await setS(env, 'line_target_' + p, b.targets[p]);
     if (typeof b.enabled === 'boolean') await setS(env, 'line_enabled', b.enabled ? '1' : '0');
+    if (b.clearAdmin === true) await setS(env, 'line_admin', '');
     return json({ ok: true });
   }
   if (sub === 'preview' && m === 'GET') { const d = twDate(Date.now()); return json({ texts: { ersu: await dailyText(env, d, ['ersu']), eryanglou: await dailyText(env, d, ['eryanglou']) } }); }
