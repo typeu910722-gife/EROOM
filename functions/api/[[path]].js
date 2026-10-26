@@ -47,16 +47,33 @@ function splitByDate(text, defaultDate) {
   return segs;
 }
 
+// 備註：房號後面加括號「502（12:00 退房）」；只改備註用「備註 502（…）」；「502（）」清掉備註
 function parseText(text, rooms) {
   const set = new Map(rooms.map((r) => [r.toUpperCase(), r]));
-  const tokens = String(text).replace(/[，,、；;：:\n\/.。+＋]+/g, ' ').split(/\s+/).filter(Boolean);
+  const notes = {};
+  let i = 0;
+  const src = String(text).replace(/([0-9A-Za-z]+)\s*[（(]([^）)]*)[）)]/g, (_, r, n) => { const k = '§' + i++; notes[k] = { r, n: n.trim() }; return ' ' + k + ' '; });
+  const tokens = src.replace(/[，,、；;：:\n\/.。+＋]+/g, ' ').split(/\s+/).filter(Boolean);
   const items = [], unknown = [];
   let cur = null;
   for (const tk of tokens) {
-    const mm = tk.match(/^([^\dA-Za-z]+)?([\dA-Za-z]+)?$/);
-    const word = mm ? mm[1] : tk, num = mm ? mm[2] : null;
-    if (word) { const order = [WORDS[2], WORDS[0], WORDS[1], WORDS[3], WORDS[4], WORDS[5], WORDS[6]]; const w = order.find(([re]) => re.test(word)); if (w) cur = w[1]; }
-    if (num && cur) { const r = set.get(num.toUpperCase()); if (r) items.push({ room: r, data: { ...cur } }); else unknown.push(num); }
+    let num, note;
+    if (/^§\d+$/.test(tk)) { num = notes[tk].r; note = notes[tk].n; }
+    else {
+      const mm = tk.match(/^([^\dA-Za-z]+)?([\dA-Za-z]+)?$/);
+      const word = mm ? mm[1] : tk; num = mm ? mm[2] : null;
+      if (word) {
+        if (/備註|註記|備注/.test(word)) cur = { __noteOnly: true };
+        else { const order = [WORDS[2], WORDS[0], WORDS[1], WORDS[3], WORDS[4], WORDS[5], WORDS[6]]; const w = order.find(([re]) => re.test(word)); if (w) cur = w[1]; }
+      }
+    }
+    if (!num || (!cur && note === undefined)) continue;
+    const r = set.get(num.toUpperCase());
+    if (!r) { unknown.push(num); continue; }
+    const data = cur && !cur.__noteOnly ? { ...cur } : {};
+    if (note !== undefined) data.note = note;
+    if (!Object.keys(data).length) continue;
+    items.push({ room: r, data });
   }
   return { items, unknown };
 }
@@ -228,9 +245,10 @@ export async function onRequest(ctx) {
         if (!items.length && !replace) continue;
         if (replace) { const touched = new Set(items.map((i) => i.room)); for (const r of rooms) if (!touched.has(r)) stmts.push(await upsertRecord(env, pp, sg.d, r, { kind: '', status: '', note: '' }, now)); }
         for (const it of items) stmts.push(await upsertRecord(env, pp, sg.d, it.room, it.data, now));
-        out.push(`${sg.d}：${items.map((i) => i.room + ' ' + (i.data.kind === '續住' ? (i.data.status ? '續住要掃' : '續住不用掃') : i.data.kind ? ({ '退入': '退房→入住' })[i.data.kind] || i.data.kind : 'kind' in i.data ? '清空' : '不用掃')).join('、') || '（清空）'}`);
+        const lbl = (d) => d.kind === '續住' ? (d.status ? '續住要掃' : '續住不用掃') : d.kind ? ({ '退入': '退房→入住' })[d.kind] || d.kind : 'kind' in d ? '清空' : 'status' in d ? '不用掃' : '';
+        out.push(`${sg.d}：${items.map((i) => [i.room, lbl(i.data)].filter(Boolean).join(' ') + ('note' in i.data && !('kind' in i.data && !i.data.kind) ? (i.data.note ? `（備註：${i.data.note}）` : '（清掉備註）') : '')).join('、') || '（清空）'}`);
       }
-      if (!out.length) return txt('沒有辨識到房號。寫法例如：退房 201 203 退入 305 續住 501 入住 306\n多天：每一行用日期開頭，例如「10/22 退房 201」' + (allUnknown.length ? `\n不認得的房號：${allUnknown.join('、')}` : ''), 400);
+      if (!out.length) return txt('沒有辨識到房號。寫法例如：退房 201 203 退入 305 續住 501 入住 306\n多天：每一行用日期開頭，例如「10/22 退房 201」\n備註：房號後加括號，例如「退房 502（12:00 退房）」，只改備註用「備註 502（…）」' + (allUnknown.length ? `\n不認得的房號：${allUnknown.join('、')}` : ''), 400);
       if (stmts.length) await env.DB.batch(stmts);
       const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
       return txt(`已登記 ${name}\n${out.join('\n')}` + (allUnknown.length ? `\n不認得的房號（沒寫入）：${[...new Set(allUnknown)].join('、')}` : '') + `\n網站：https://eroom.yzprojecttw.com/?p=${pp}&d=${segs[0].d}`);
