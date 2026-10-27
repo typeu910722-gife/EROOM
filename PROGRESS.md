@@ -55,5 +55,12 @@
 - [x] 奶油風主題：手機淺色模式自動套用（prefers-color-scheme: light），深色維持暗金
 - [ ] 早餐試算表網址待使用者提供
 
+## 本機版（2026-10-27）
+- 原因：Cloudflare 帳號 D1 每日 500 萬讀取被 OCTA（ebot DB，10/27 約 643 萬）吃光，E·ROOM 跟著停擺
+- [x] local/server.js：Node 內建 SQLite 模擬 D1 介面，直接跑同一份 functions/api/[[path]].js 與 public/；排程 10:30 check、10:50 daily；每日備份；選用 Workers AI（REST）
+- [x] /api/dump（管理員）+ `server.js import`：從雲端搬資料
+- [x] Windows：啟動.bat（自動重啟）、匯入雲端資料.bat、開機自動啟動.bat
+- [ ] 使用者準備好電腦 → 建 Cloudflare Tunnel、eroom.yzprojecttw.com 改指 tunnel、停用 eroom-cron schedules、Grok/試算表網址確認
+
 ## 待辦
 - 每天早上把要掃的房間推送到 LINE

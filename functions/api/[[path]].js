@@ -138,7 +138,17 @@ export async function onRequest(ctx) {
   const p = url.searchParams.get('p');
 
   try {
-    if (path === 'ping') return json({ ok: true });
+    if (path === 'ping') return json({ ok: true, local: !!env.LOCAL });
+
+    // 管理員：整個資料庫匯出（搬到本機版用）
+    if (path === 'dump' && m === 'GET') {
+      if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
+      const out = {};
+      for (const t of ['records', 'config', 'docs', 'settings', 'issues', 'photos', 'logs']) {
+        try { out[t] = (await env.DB.prepare('SELECT * FROM ' + t).all()).results; } catch { out[t] = []; }
+      }
+      return json({ at: Date.now(), tables: out });
+    }
 
     if (path === 'admin' && m === 'POST') {
       return (await isAdmin(env, request)) ? json({ ok: true }) : bad('密碼錯誤', 401);
