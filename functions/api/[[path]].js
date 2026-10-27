@@ -4,8 +4,8 @@
 // 原則：只做 upsert，不刪除舊資料。
 
 const PROPS = ['ersu', 'eryanglou', 'erlu'];
-const PNAME = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳旅' };
-const DOC_KEYS = ['handbook', 'stay', 'checkout', 'checklist', 'supplies', 'roominfo'];
+const PNAME = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳侶' };
+const DOC_KEYS = ['handbook', 'stay', 'checkout', 'checklist', 'supplies', 'roominfo', 'breakfast'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ROOM_RE = /^[0-9A-Za-z\-]{1,8}$/;
 
@@ -231,7 +231,7 @@ export async function onRequest(ctx) {
       const d0 = url.searchParams.get('d') || twDate(Date.now());
       let t = url.searchParams.get('t') || '';
       if (m === 'POST') t = (await request.text()) || t;
-      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳旅）', 400);
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳侶）', 400);
       if (!DATE_RE.test(d0)) return txt('d 日期格式要像 2026-10-21', 400);
       const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
       const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
@@ -264,7 +264,7 @@ export async function onRequest(ctx) {
       const key = await env.DB.prepare("SELECT v FROM settings WHERE k='bot_key'").first();
       if (!key || url.searchParams.get('k') !== key.v) return txt('金鑰錯誤', 401);
       const pp = url.searchParams.get('p');
-      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳旅）', 400);
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳侶）', 400);
       let t = url.searchParams.get('t') || '';
       if (m === 'POST') t = (await request.text()) || t;
       const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
@@ -361,6 +361,20 @@ export async function onRequest(ctx) {
 
     // ---- 維護／房況紀錄（大家都能新增、編輯、刪除）----
     if (path === 'logs') return logsApi(request, env, url, m);
+    // 紀錄報表：期間內各類筆數、各房、每天／每月
+    if (path === 'logs/report' && m === 'GET') {
+      const from = url.searchParams.get('from'), to = url.searchParams.get('to');
+      if (!PROPS.includes(p) || !DATE_RE.test(from || '') || !DATE_RE.test(to || '')) return bad('參數錯誤');
+      const { results } = await env.DB.prepare('SELECT room, date, cat FROM logs WHERE prop=? AND deleted=0 AND date BETWEEN ? AND ?').bind(p, from, to).all();
+      const tot = {}, rooms = {}, daily = {}, monthly = {};
+      for (const r of results) {
+        tot[r.cat] = (tot[r.cat] || 0) + 1;
+        const R = (rooms[r.room] ||= {}); R[r.cat] = (R[r.cat] || 0) + 1; if (!R['last_' + r.cat] || r.date > R['last_' + r.cat]) R['last_' + r.cat] = r.date;
+        const D = (daily[r.date] ||= {}); D[r.cat] = (D[r.cat] || 0) + 1;
+        const M = (monthly[r.date.slice(0, 7)] ||= {}); M[r.cat] = (M[r.cat] || 0) + 1;
+      }
+      return json({ from, to, cats: catsFor(p), tot, rooms, daily, monthly, n: results.length });
+    }
     // 管理員測試：這段回報會被登記成什麼（不寫入）
     if (path === 'logs/parse' && m === 'GET') {
       if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
@@ -732,6 +746,15 @@ async function line(sub, m, request, env, url, ctx) {
 // ======================= 維護／房況紀錄 =======================
 // logs(id, prop, room, date, cat, content, by, source, line_msg, deleted, created_at, updated_at)
 const LOG_CATS = ['冷氣清洗', '冷氣維修', '維修', '房況', '其他'];
+const ERLU_CATS = ['清理', '故障'];
+const catsFor = (p) => (p === 'erlu' ? ERLU_CATS : LOG_CATS);
+function guessCatFor(p, t) {
+  const c = guessCat(t);
+  if (p !== 'erlu' || !c) return c;
+  if (c === '冷氣維修' || c === '維修') return '故障';
+  if (c === '冷氣清洗') return '清理';
+  return /壞|故障|修|漏|不冷|不熱|跳電|卡住/.test(t) ? '故障' : '清理';
+}
 function guessCat(t) {
   const ac = /冷氣|空調|AC|濾網/i.test(t);
   const fix = /修|壞|故障|報修|漏水|不冷|不涼|異音|換|更換|滴水|跳電/.test(t);
@@ -759,12 +782,13 @@ function msgDate(t) {
 }
 // 用 AI 讀懂比較亂的回報：多間、多件事、「2樓全部」、口語日期；AI 失敗就用關鍵字規則
 const AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-async function aiParse(env, text, rooms) {
+async function aiParse(env, text, rooms, p) {
+  const CATS = catsFor(p);
   if (!env.AI) return null;
   const today = twDate(Date.now());
   const sys = `你是民宿「房務紀錄」助手。員工在 LINE 群組回報，請找出需要登記的紀錄。
 今天是 ${today}（台灣）。這一館的房號：${rooms.length ? rooms.join('、') : '（未設定，只能用訊息裡明確寫出的房號）'}。
-類型只能是：冷氣清洗（冷氣/空調/濾網 清洗、保養）、冷氣維修（冷氣壞了、不冷、漏水、報修、修好、更換零件）、維修（冷氣以外的設備壞了、修理、更換：燈、馬桶、水龍頭、熱水器、門鎖、電視…）、房況（房間狀態：髒、異味、蟲、床、備品、消毒、客人損壞、需要注意的狀況）、其他（跟房間有關但不屬於上面）。
+類型只能是：${p === 'erlu' ? '清理（冷氣、濾網、設備、房間的清洗、清潔、保養、消毒、除蟲、整理）、故障（任何東西壞了、不能用、漏水、異音、報修、修好、更換零件：冷氣、燈、馬桶、熱水器、門鎖、電視…）' : '冷氣清洗（冷氣/空調/濾網 清洗、保養）、冷氣維修（冷氣壞了、不冷、漏水、報修、修好、更換零件）、維修（冷氣以外的設備壞了、修理、更換：燈、馬桶、水龍頭、熱水器、門鎖、電視…）、房況（房間狀態：髒、異味、蟲、床、備品、消毒、客人損壞、需要注意的狀況）、其他（跟房間有關但不屬於上面）'}。
 規則：
 - 只登記「回報已經發生或已完成的事」。聊天、問句、打招呼、排班、請別人去做但還沒做的，回傳空陣列。
 - 一則訊息可能有多間、多件事，每間每件事各一筆。
@@ -772,7 +796,7 @@ async function aiParse(env, text, rooms) {
 - 日期：訊息寫 M/D、昨天、前天就換算成 YYYY-MM-DD，沒寫就是今天。不能是未來。
 - summary 用繁體中文，20 字內，保留重點（做了什麼、狀況、零件、師傅）。
 - 房號一定要出現在房號清單（或訊息裡），不確定就不要寫。`;
-  const schema = { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { room: { type: 'string' }, cat: { type: 'string', enum: LOG_CATS }, date: { type: 'string' }, summary: { type: 'string' } }, required: ['room', 'cat', 'date', 'summary'] } } }, required: ['items'] };
+  const schema = { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { room: { type: 'string' }, cat: { type: 'string', enum: CATS }, date: { type: 'string' }, summary: { type: 'string' } }, required: ['room', 'cat', 'date', 'summary'] } } }, required: ['items'] };
   try {
     const r = await env.AI.run(AI_MODEL, { messages: [{ role: 'system', content: sys }, { role: 'user', content: text.slice(0, 1500) }], response_format: { type: 'json_schema', json_schema: schema }, max_tokens: 900, temperature: 0 });
     let out = r && r.response;
@@ -783,7 +807,7 @@ async function aiParse(env, text, rooms) {
     for (const it of out.items) {
       const rr = String(it.room || '').trim().toUpperCase();
       const room = rooms.length ? set.get(rr) : (/^\d{3,4}[A-Z]?$/.test(rr) && text.toUpperCase().includes(rr) ? rr : null);
-      if (!room || !LOG_CATS.includes(it.cat)) continue;
+      if (!room || !CATS.includes(it.cat)) continue;
       let date = DATE_RE.test(it.date || '') ? it.date : today;
       if (date > today || date < addDay(today, -60)) date = today;
       const k = room + '|' + it.cat; if (seen.has(k)) continue; seen.add(k);
@@ -792,8 +816,8 @@ async function aiParse(env, text, rooms) {
     return items;
   } catch (e) { return null; }
 }
-function ruleParse(text, rooms) {
-  const cat = guessCat(text); if (!cat) return [];
+function ruleParse(text, rooms, p) {
+  const cat = guessCatFor(p, text); if (!cat) return [];
   const date = msgDate(text);
   return findRooms(text, rooms).map((room) => ({ room, cat, date, summary: '' }));
 }
@@ -802,9 +826,9 @@ async function parseReport(env, p, text) {
   const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
   // 先篩：沒有像房號的字、也沒有「樓／全部」就不用問 AI
   if (!findRooms(text, rooms).length && !/樓|全部|每間|所有房/.test(text)) return { items: [], via: 'skip' };
-  const ai = await aiParse(env, text, rooms);
+  const ai = await aiParse(env, text, rooms, p);
   if (ai) return { items: ai, via: 'ai' };
-  return { items: ruleParse(text, rooms), via: 'rule' };
+  return { items: ruleParse(text, rooms, p), via: 'rule' };
 }
 async function autoLog(env, p, text, ev, gid, token) {
   const { items } = await parseReport(env, p, text);
@@ -830,17 +854,20 @@ async function logsApi(request, env, url, m) {
     if (!PROPS.includes(p)) return bad('館別錯誤');
     const q = ['prop=?', 'deleted=0']; const args = [p];
     const cat = url.searchParams.get('cat'), room = url.searchParams.get('room');
-    if (cat && LOG_CATS.includes(cat)) { q.push('cat=?'); args.push(cat); }
+    if (cat && catsFor(p).includes(cat)) { q.push('cat=?'); args.push(cat); }
     if (room) { q.push('room=?'); args.push(room); }
     const { results } = await env.DB.prepare(`SELECT id,room,date,cat,content,raw,by,source,created_at,updated_at FROM logs WHERE ${q.join(' AND ')} ORDER BY date DESC, id DESC LIMIT 300`).bind(...args).all();
     const { results: last } = await env.DB.prepare("SELECT room, cat, max(date) d FROM logs WHERE prop=? AND deleted=0 AND cat IN ('冷氣清洗','冷氣維修') GROUP BY room, cat").bind(p).all();
     const ac = {};
     for (const r of last) (ac[r.room] ||= {})[r.cat === '冷氣清洗' ? 'clean' : 'fix'] = r.d;
-    return json({ logs: results, ac, cats: LOG_CATS });
+    const { results: lastAll } = await env.DB.prepare('SELECT room, cat, max(date) d, count(*) n FROM logs WHERE prop=? AND deleted=0 GROUP BY room, cat').bind(p).all();
+    const lastBy = {};
+    for (const r of lastAll) (lastBy[r.room] ||= {})[r.cat] = { d: r.d, n: r.n };
+    return json({ logs: results, ac, last: lastBy, cats: catsFor(p) });
   }
   const b = await body(request);
   if (m === 'POST') {
-    if (!b || !PROPS.includes(b.p) || !LOG_CATS.includes(b.cat) || !DATE_RE.test(b.date || '')) return bad('參數錯誤');
+    if (!b || !PROPS.includes(b.p) || !catsFor(b.p).includes(b.cat) || !DATE_RE.test(b.date || '')) return bad('參數錯誤');
     const rooms = [...new Set((Array.isArray(b.rooms) ? b.rooms : [b.room]).map((x) => String(x || '').trim()).filter((x) => /^[0-9A-Za-z\-]{1,8}$/.test(x) || x === '公共'))].slice(0, 40);
     if (!rooms.length) return bad('請選房號');
     const now = Date.now();
@@ -854,7 +881,7 @@ async function logsApi(request, env, url, m) {
     if (!old) return bad('找不到這筆紀錄', 404);
     const room = typeof b.room === 'string' && b.room.trim() ? b.room.trim().slice(0, 8) : old.room;
     const date = DATE_RE.test(b.date || '') ? b.date : old.date;
-    const cat = LOG_CATS.includes(b.cat) ? b.cat : old.cat;
+    const cat = catsFor(old.prop).includes(b.cat) ? b.cat : old.cat;
     const content = typeof b.content === 'string' ? b.content.slice(0, 500) : old.content;
     const by = typeof b.by === 'string' ? b.by.slice(0, 30) : old.by;
     await env.DB.prepare('UPDATE logs SET room=?,date=?,cat=?,content=?,by=?,updated_at=? WHERE id=?').bind(room, date, cat, content, by, Date.now(), b.id).run();
