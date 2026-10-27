@@ -7,3 +7,6 @@ CREATE TABLE IF NOT EXISTS issues (id INTEGER PRIMARY KEY AUTOINCREMENT, prop TE
 CREATE INDEX IF NOT EXISTS issues_status ON issues(status, created_at);
 CREATE TABLE IF NOT EXISTS photos (id TEXT PRIMARY KEY, mime TEXT NOT NULL, data TEXT NOT NULL, created_at INTEGER NOT NULL);
 -- settings.sync_key：Google 試算表同步金鑰（在 D1 產生，不放進程式碼）
+CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, prop TEXT NOT NULL, room TEXT NOT NULL, date TEXT NOT NULL, cat TEXT NOT NULL, content TEXT NOT NULL DEFAULT '', by TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'web', line_msg TEXT, deleted INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS logs_prop ON logs(prop, deleted, date);
+CREATE INDEX IF NOT EXISTS logs_msg ON logs(line_msg);

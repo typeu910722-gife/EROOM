@@ -37,9 +37,9 @@ h2::after{content:"";flex:1;height:1px;background:var(--line)}
 /* 頂部 */
 header{position:sticky;top:0;z-index:20;background:rgba(18,17,14,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line2);padding:calc(var(--safe-t) + 10px) 0 10px}
 header .in{max-width:720px;margin:0 auto;padding:0 18px;display:flex;align-items:center;gap:12px}
-.brand{font-family:var(--serif);font-size:13px;letter-spacing:.5em;color:var(--gold);white-space:nowrap}
+.brand{font-family:var(--serif);font-size:12px;letter-spacing:.32em;color:var(--gold);white-space:nowrap}
 .props{display:flex;gap:4px;margin:0 auto}
-.props button{border:0;background:none;color:var(--mute);font-family:var(--tc);font-weight:700;font-size:18px;letter-spacing:.18em;padding:4px 10px;border-bottom:1px solid transparent}
+.props button{border:0;background:none;color:var(--mute);font-family:var(--tc);font-weight:700;font-size:17px;letter-spacing:.12em;padding:4px 7px;white-space:nowrap;border-bottom:1px solid transparent}
 .props button[aria-pressed=true]{color:var(--ink);border-bottom-color:var(--gold)}
 .lock{border:1px solid var(--line);background:none;color:var(--mute);width:34px;height:34px;border-radius:50%;font-size:14px;line-height:1;display:grid;place-items:center}
 .lock.on{color:var(--gold2);border-color:var(--gold)}
@@ -144,7 +144,7 @@ details.tools .row{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 14px}
 .chip{white-space:nowrap;flex:none;border:1px solid var(--line);background:none;border-radius:999px;padding:6px 15px;letter-spacing:.06em}
 .chip[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#1a1612}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-input[type=time],input[type=text],input[type=password],textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:9px 11px;color-scheme:dark}
+input[type=time],input[type=date],input[type=text],input[type=password],textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:9px 11px;color-scheme:dark}
 textarea{min-height:90px;resize:vertical;line-height:1.65}
 .steps{margin:0;padding-left:22px;color:var(--ink)}.steps li{padding:3px 0}
 .steps li::marker{color:var(--gold);font-family:var(--serif)}
@@ -222,6 +222,19 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .rtable tr.sum td{color:var(--gold2);border-top:1px solid var(--line)}
 .rtable tr.sum td:first-child{font-family:var(--tc);font-size:14px}
 
+.logi{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:11px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left}
+.logi .no{font-family:var(--serif);font-weight:600;font-size:26px;line-height:1.05;color:var(--gold2);width:56px;flex:none}
+.logi .bd{flex:1;min-width:0}.logi .tp{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.logi .ct{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:0 9px;letter-spacing:.08em;color:var(--gold)}
+.logi .ct.c-冷氣維修,.logi .ct.c-維修{border-color:var(--prio);color:var(--prio)}.logi .ct.c-房況{border-color:var(--in);color:var(--in)}
+.logi .dt{font-family:var(--serif);font-size:15px;color:var(--ink)}
+.logi .tx{margin:4px 0 0;white-space:pre-wrap;word-break:break-word;font-size:14px}
+.logi .by{font-size:12px;color:var(--mute);margin-top:3px}
+.acg{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:6px}
+.acc{background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:8px 10px;text-align:left}
+.acc b{display:block;font-family:var(--serif);font-weight:600;font-size:22px;color:var(--ink);line-height:1.1}
+.acc span{display:block;font-size:12px;color:var(--mute)}.acc .ok{color:var(--done)}.acc .old{color:var(--prio)}
+.rpick{display:flex;flex-wrap:wrap;gap:6px}.rpick .chip{font-family:var(--serif);font-size:16px;padding:4px 12px}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 8px 8px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
 .toast.on{display:flex}
 .toast button{border:1px solid var(--line);background:none;color:var(--gold2);border-radius:999px;padding:3px 12px}
@@ -238,6 +251,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
     <div class="props" role="group" aria-label="館別">
       <button data-prop="ersu">貳宿</button>
       <button data-prop="eryanglou">貳洋樓</button>
+      <button data-prop="erlu">貳侶</button>
     </div>
     <button class="lock" id="lockBtn" aria-label="管理員登入" title="管理員"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
   </div>
@@ -269,6 +283,15 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
     <div class="legend"><span><i class="dot" style="background:var(--prio)"></i>退房→入住（優先）</span><span><i class="dot" style="background:var(--gold)"></i>退房、續住要掃</span><span><i class="dot" style="background:var(--in)"></i>入住</span></div>
   </section>
 
+  <!-- 紀錄 -->
+  <section class="page" id="p-log">
+    <button class="addbtn" id="newLog">＋ 新增紀錄（冷氣清洗、維修、房況）</button>
+    <div class="chips" id="logCats" style="margin:6px 0 4px"></div>
+    <div id="acWrap"></div>
+    <h2 id="logTitle">紀錄</h2>
+    <div id="logBody"></div>
+  </section>
+
   <!-- 手冊 -->
   <section class="page" id="p-book">
     <div class="subtabs" id="bookTabs"></div>
@@ -295,6 +318,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 
 <nav class="tabs" aria-label="主選單">
   <button data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>今日</button>
+  <button data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/></svg>紀錄</button>
   <button data-tab="book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
   <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>報表</button>
 </nav>
@@ -305,7 +329,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 
 <script>
 'use strict';
-const PROPS = { ersu: '貳宿', eryanglou: '貳洋樓' };
+const PROPS = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳侶' };
 // kind（存檔值）→ 顯示
 const KINDS = {
   '退房': { label: '退房', color: 'var(--todo)', status: 'todo' },
@@ -400,7 +424,7 @@ const S = {
   bookKey: 'handbook',
   admin: ss.get('eroom.admin'),
   pending: ls.get('eroom.pending', []),
-  roomView: 'report', month: todayStr().slice(0, 7), rptType: 'm', rptYear: +todayStr().slice(0, 4), rptHalf: +todayStr().slice(5, 7) <= 6 ? 1 : 2, reports: {}, me: ls.get('eroom.me', ''),
+  logs: {}, logCat: '', roomView: 'report', month: todayStr().slice(0, 7), rptType: 'm', rptYear: +todayStr().slice(0, 4), rptHalf: +todayStr().slice(5, 7) <= 6 ? 1 : 2, reports: {}, me: ls.get('eroom.me', ''),
 };
 
 function todayStr(d = new Date()) {
@@ -524,7 +548,7 @@ function renderToday(flashRooms = []) {
   $('#goToday').hidden = S.date === todayStr();
 
   const rooms = S.rooms[S.prop] || [];
-  if (!S.recs[key()] || !rooms.length) {
+  if (!S.recs[key()] || !S.rooms[S.prop]) {
     $('#counts').innerHTML = '<div class="zero" data-state="loading">讀取中⋯</div>';
     $('#todoList').innerHTML = ''; $('#floors').innerHTML = '';
     document.body.dataset.ready = '0';
@@ -901,6 +925,83 @@ async function renderReport() {
     <div class="pies">${rooms.map((r) => { const x = P.rooms[r]; const pr = pct(x.occ, t.days, 1); return `<div class="pi">${donut(pr, 76, 8, `<text x="38" y="43" text-anchor="middle" class="pvs">${pr}%</text>`)}<b>${esc(r)}</b><span>入住 ${x.checkin} 次</span></div>`; }).join('')}</div>`;
 }
 
+// ---------- 紀錄（冷氣清洗、維修、房況；大家都能新增編輯刪除）----------
+const LOG_CATS = ['冷氣清洗', '冷氣維修', '維修', '房況', '其他'];
+const daysAgo = (d) => Math.round((Date.parse(todayStr() + 'T00:00:00Z') - Date.parse(d + 'T00:00:00Z')) / 864e5);
+const mdShort = (d) => { const x = new Date(d + 'T00:00:00Z'); return (x.getUTCMonth() + 1) + '/' + x.getUTCDate(); };
+async function loadLogs() {
+  const j = await api('logs?p=' + S.prop + (S.logCat ? '&cat=' + encodeURIComponent(S.logCat) : ''));
+  S.logs[S.prop + '|' + S.logCat] = j;
+}
+async function renderLogs(fresh = true) {
+  $('#logCats').innerHTML = [['', '全部'], ...LOG_CATS.map((c) => [c, c])].map(([k, t]) => `<button class="chip" data-lcat="${k}" aria-pressed="${S.logCat === k}">${t}</button>`).join('');
+  const k = S.prop + '|' + S.logCat;
+  if (!S.logs[k] || fresh) {
+    if (!S.logs[k]) { $('#logBody').innerHTML = '<p class="empty">讀取中⋯</p>'; $('#acWrap').innerHTML = ''; }
+    try { await loadLogs(); } catch (e) { $('#logBody').innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
+    if (S.tab !== 'log') return;
+  }
+  const J = S.logs[k];
+  const rooms = S.rooms[S.prop] || [];
+  // 冷氣總覽：每間最後一次清洗
+  const showAc = !S.logCat || S.logCat === '冷氣清洗' || S.logCat === '冷氣維修';
+  $('#acWrap').innerHTML = showAc && rooms.length ? `<h2>冷氣總覽</h2><div class="acg">${rooms.map((r) => {
+    const a = J.ac[r] || {};
+    const d = a.clean ? daysAgo(a.clean) : null;
+    return `<button class="acc" data-logroom="${esc(r)}"><b>${esc(r)}</b><span class="${d == null ? 'old' : d > 90 ? 'old' : 'ok'}">${a.clean ? '清洗 ' + mdShort(a.clean) + '（' + (d === 0 ? '今天' : d + ' 天前') + '）' : '還沒有清洗紀錄'}</span>${a.fix ? `<span>維修 ${mdShort(a.fix)}</span>` : ''}</button>`;
+  }).join('')}</div><p class="muted small" style="margin:0">超過 90 天沒清洗的顯示紅色。點房號可以直接新增那間的紀錄。</p>` : '';
+  $('#logTitle').textContent = (S.logCat || '全部') + '紀錄';
+  $('#logBody').innerHTML = J.logs.length ? J.logs.map((l) => `<button class="logi" data-logid="${l.id}">
+      <span class="no">${esc(l.room)}</span>
+      <span class="bd"><span class="tp"><span class="ct c-${esc(l.cat)}">${esc(l.cat)}</span><span class="dt">${mdShort(l.date)}</span></span>
+        ${l.content ? `<span class="tx" style="display:block">${esc(l.content)}</span>` : ''}
+        <span class="by" style="display:block">${esc(l.by || '')}${l.source === 'line' ? '・LINE 群組' : ''}</span></span></button>`).join('')
+    : `<p class="empty">${esc(PROPS[S.prop])}還沒有${esc(S.logCat || '')}紀錄。按上面「新增紀錄」，或在 LINE 群組回報（要寫房號）就會自動登記。</p>`;
+}
+function openLogForm(id, presetRoom) {
+  const J = S.logs[S.prop + '|' + S.logCat] || { logs: [] };
+  const old = id ? J.logs.find((x) => x.id === id) : null;
+  const rooms = S.rooms[S.prop] || [];
+  const f = old ? { rooms: [old.room], cat: old.cat, date: old.date, content: old.content, by: old.by } : { rooms: presetRoom ? [presetRoom] : [], cat: S.logCat || '冷氣清洗', date: todayStr(), content: '', by: S.me || '' };
+  const draw = () => {
+    $('#sheetBody').innerHTML = `<h3 class="t">${old ? '編輯紀錄' : '新增紀錄'}</h3><div class="sub">${esc(PROPS[S.prop])}${old ? '' : '。可以一次選好幾間'}</div>
+      <div class="lbl">房號</div>
+      ${rooms.length ? `<div class="rpick">${rooms.map((r) => `<button class="chip" data-pr="${esc(r)}" aria-pressed="${f.rooms.includes(r)}">${esc(r)}</button>`).join('')}<button class="chip" data-pr="公共" aria-pressed="${f.rooms.includes('公共')}">公共</button></div>`
+        : `<input type="text" id="fRooms" value="${esc(f.rooms.join(' '))}" placeholder="例如：201 202（空白分隔）">`}
+      <div class="lbl">類型</div>
+      <div class="chips">${LOG_CATS.map((c) => `<button class="chip" data-pc="${c}" aria-pressed="${f.cat === c}">${c}</button>`).join('')}</div>
+      <div class="lbl">日期</div><input type="date" id="fDate" value="${esc(f.date)}">
+      <div class="lbl">內容</div><textarea id="fCont" placeholder="例如：濾網清洗、冷媒補充、師傅：王先生">${esc(f.content)}</textarea>
+      <div class="lbl">登記人</div><input type="text" id="fBy" value="${esc(f.by)}" placeholder="你的名字">
+      <div class="btnrow">${old ? '<button class="btn ghost" id="fDel" style="color:var(--prio);border-color:var(--prio)">刪除</button>' : ''}<button class="btn ghost" id="fClose">取消</button><button class="btn wide" id="fSave">儲存</button></div>`;
+  };
+  const keep = () => { const c = $('#fCont'), d = $('#fDate'), b = $('#fBy'), r = $('#fRooms'); if (c) f.content = c.value; if (d) f.date = d.value.trim(); if (b) f.by = b.value.trim(); if (r) f.rooms = r.value.split(/[\s,，、]+/).filter(Boolean); };
+  draw();
+  $('#sheetBody').onclick = async (e) => {
+    const t = e.target;
+    if (t.dataset.pr) { keep(); const r = t.dataset.pr; if (old) f.rooms = [r]; else f.rooms = f.rooms.includes(r) ? f.rooms.filter((x) => x !== r) : [...f.rooms, r]; return draw(); }
+    if (t.dataset.pc) { keep(); f.cat = t.dataset.pc; return draw(); }
+    if (t.id === 'fClose') return closeSheet();
+    if (t.id === 'fDel') {
+      if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.textContent = '確定刪除？'; return; }
+      try { await api('logs?id=' + old.id, { method: 'DELETE' }); closeSheet(); toast('已刪除'); renderLogs(); } catch (err) { toast(err.message, false, true); }
+      return;
+    }
+    if (t.id === 'fSave') {
+      keep();
+      if (f.by) { S.me = f.by; ls.set('eroom.me', f.by); }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return toast('日期格式要像 2026-10-27', false, true);
+      if (!f.rooms.length) return toast('請選房號', false, true);
+      try {
+        if (old) await api('logs', { method: 'PUT', body: JSON.stringify({ id: old.id, room: f.rooms[0], cat: f.cat, date: f.date, content: f.content, by: f.by }) });
+        else await api('logs', { method: 'POST', body: JSON.stringify({ p: S.prop, rooms: f.rooms, cat: f.cat, date: f.date, content: f.content, by: f.by }) });
+        closeSheet(); toast(old ? '已儲存' : `已新增 ${f.rooms.length} 筆`); renderLogs();
+      } catch (err) { toast(err.message, false, true); }
+    }
+  };
+  openSheet();
+}
+
 // ---------- LINE 設定（管理員）----------
 async function renderLine() {
   const w = $('#lineWrap');
@@ -922,11 +1023,13 @@ async function renderLine() {
     </div>
     <h2>各館推播群組</h2>
     <div class="doc" style="padding-top:12px">
-      <p class="muted small" style="margin-top:0">在群組裡傳「綁定貳宿」或「綁定貳洋樓」就會自動綁好，也可以在這裡選。每個群組只會收到自己那一館。</p>
+      <p class="muted small" style="margin-top:0">在群組裡傳「綁定貳宿」「綁定貳洋樓」或「綁定貳侶」就會自動綁好，也可以在這裡選。每個群組只會收到自己那一館。</p>
       ${Object.keys(PROPS).map((p) => `<div class="lbl">${PROPS[p]}</div>
         <select data-lnp="${p}"><option value="">不傳送</option>${gids.map((g) => `<option value="${esc(g)}" ${c.targets[p] === g ? 'selected' : ''}>${esc(gname(g))}</option>`).join('')}</select>
-        <p class="muted small" style="margin:4px 0 0">上次自動傳送：${esc(c.last[p] || '還沒有')}　<a href="#" data-lntest="${p}" style="color:var(--gold)">傳一則今日打掃</a></p>`).join('')}
-      <label class="sitem" style="margin-top:12px"><input type="checkbox" id="lnOn" ${c.enabled ? 'checked' : ''}> 每天 10:50 自動傳送</label>
+        <label class="sitem" style="padding:4px 0;border:0"><input type="checkbox" data-lnpush="${p}" ${c.push[p] ? 'checked' : ''}> 每天 10:50 傳今日打掃</label>
+        <label class="sitem" style="padding:4px 0;border:0"><input type="checkbox" data-lnauto="${p}" ${c.autolog[p] ? 'checked' : ''}> 群組回報自動登記到「紀錄」</label>
+        <p class="muted small" style="margin:2px 0 0">上次自動傳送：${esc(c.last[p] || '還沒有')}　<a href="#" data-lntest="${p}" style="color:var(--gold)">傳一則今日打掃</a></p>`).join('')}
+      <label class="sitem" style="margin-top:12px"><input type="checkbox" id="lnOn" ${c.enabled ? 'checked' : ''}> 每日推播總開關</label>
       <div class="btnrow"><button class="btn wide" id="lnSave2">儲存推播設定</button></div>
     </div>
     <h2>未登記提醒</h2>
@@ -941,8 +1044,11 @@ async function renderLine() {
     catch (e) { toast(e.message, false, true); }
   };
   $('#lnSave2').onclick = async () => {
-    const targets = {}; document.querySelectorAll('[data-lnp]').forEach((x) => (targets[x.dataset.lnp] = x.value));
-    try { await api('line/config', { method: 'PUT', body: JSON.stringify({ targets, enabled: $('#lnOn').checked }) }); toast('推播設定已儲存'); renderLine(); }
+    const targets = {}, push = {}, autolog = {};
+    document.querySelectorAll('[data-lnp]').forEach((x) => (targets[x.dataset.lnp] = x.value));
+    document.querySelectorAll('[data-lnpush]').forEach((x) => (push[x.dataset.lnpush] = x.checked));
+    document.querySelectorAll('[data-lnauto]').forEach((x) => (autolog[x.dataset.lnauto] = x.checked));
+    try { await api('line/config', { method: 'PUT', body: JSON.stringify({ targets, push, autolog, enabled: $('#lnOn').checked }) }); toast('推播設定已儲存'); renderLine(); }
     catch (e) { toast(e.message, false, true); }
   };
   const ca = $('#lnClrAdmin');
@@ -997,6 +1103,13 @@ document.addEventListener('click', (e) => {
   if (rt) { const k = rt.dataset.rtype; if (k === 'h1' || k === 'h2') S.rptHalf = k === 'h1' ? 1 : 2; if (k !== 'm') S.rptYear = S.rptYear || +todayStr().slice(0, 4); S.rptType = k; renderRooms(); return; }
   const rv = t.closest('[data-rview]');
   if (rv) { S.roomView = rv.dataset.rview; renderRooms(); return; }
+  const lc = t.closest('[data-lcat]');
+  if (lc) { S.logCat = lc.dataset.lcat; renderLogs(); return; }
+  if (t.closest('#newLog')) { openLogForm(null); return; }
+  const li = t.closest('[data-logid]');
+  if (li) { openLogForm(+li.dataset.logid); return; }
+  const lr = t.closest('[data-logroom]');
+  if (lr) { openLogForm(null, lr.dataset.logroom); return; }
   const tr = t.closest('[data-open]');
   if (tr) { openRoom(tr.dataset.open); return; }
   const pl = t.closest('.plate');
@@ -1035,6 +1148,7 @@ async function refresh() {
 }
 function renderAll() {
   if (S.tab === 'today') { renderTools(); renderToday(); }
+  if (S.tab === 'log') renderLogs();
   if (S.tab === 'book') renderBook();
   if (S.tab === 'rooms') renderRooms();
 }
@@ -1050,7 +1164,7 @@ setInterval(() => { if (!document.hidden && S.tab === 'today' && !S.pending.leng
   renderLock();
   document.querySelectorAll('[data-prop]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.prop === S.prop));
   renderAll();
-  await Promise.all([loadRooms('ersu'), loadRooms('eryanglou'), loadDocs()].map((p) => p.catch(() => {})));
+  await Promise.all([loadRooms('ersu'), loadRooms('eryanglou'), loadRooms('erlu'), loadDocs()].map((p) => p.catch(() => {})));
   if (S.admin) api('admin', { method: 'POST' }).catch(() => { S.admin = ''; ss.set('eroom.admin', ''); renderLock(); });
   flush();
   refresh();

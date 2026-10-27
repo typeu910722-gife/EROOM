@@ -3,7 +3,8 @@
 // 資料表：records(prop,date,room,data,updated_at)、config(prop,data,updated_at)、docs(k,data,updated_at)、settings(k,v)
 // 原則：只做 upsert，不刪除舊資料。
 
-const PROPS = ['ersu', 'eryanglou'];
+const PROPS = ['ersu', 'eryanglou', 'erlu'];
+const PNAME = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳侶' };
 const DOC_KEYS = ['handbook', 'stay', 'checkout', 'checklist', 'supplies', 'roominfo'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ROOM_RE = /^[0-9A-Za-z\-]{1,8}$/;
@@ -230,7 +231,7 @@ export async function onRequest(ctx) {
       const d0 = url.searchParams.get('d') || twDate(Date.now());
       let t = url.searchParams.get('t') || '';
       if (m === 'POST') t = (await request.text()) || t;
-      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）或 eryanglou（貳洋樓）', 400);
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳侶）', 400);
       if (!DATE_RE.test(d0)) return txt('d 日期格式要像 2026-10-21', 400);
       const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
       const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
@@ -250,7 +251,7 @@ export async function onRequest(ctx) {
       }
       if (!out.length) return txt('沒有辨識到房號。寫法例如：退房 201 203 退入 305 續住 501 入住 306\n多天：每一行用日期開頭，例如「10/22 退房 201」\n備註：房號後加括號，例如「退房 502（12:00 退房）」，只改備註用「備註 502（…）」' + (allUnknown.length ? `\n不認得的房號：${allUnknown.join('、')}` : ''), 400);
       if (stmts.length) await env.DB.batch(stmts);
-      const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
+      const name = PNAME[pp];
       return txt(`已登記 ${name}\n${out.join('\n')}` + (allUnknown.length ? `\n不認得的房號（沒寫入）：${[...new Set(allUnknown)].join('、')}` : '') + `\n網站：https://eroom.yzprojecttw.com/?p=${pp}&d=${segs[0].d}`);
     }
 
@@ -263,7 +264,7 @@ export async function onRequest(ctx) {
       const key = await env.DB.prepare("SELECT v FROM settings WHERE k='bot_key'").first();
       if (!key || url.searchParams.get('k') !== key.v) return txt('金鑰錯誤', 401);
       const pp = url.searchParams.get('p');
-      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）或 eryanglou（貳洋樓）', 400);
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳侶）', 400);
       let t = url.searchParams.get('t') || '';
       if (m === 'POST') t = (await request.text()) || t;
       const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
@@ -325,7 +326,7 @@ export async function onRequest(ctx) {
       }
       const preview = url.searchParams.get('preview') === '1';
       if (!preview) await env.DB.batch(stmts);
-      const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
+      const name = PNAME[pp];
       return txt(`${preview ? '預覽（還沒寫入）' : '已登記'} ${name} 訂房 ${books.length} 筆\n${books.join('\n')}\n\n每天房況：\n${lines.join('\n')}` +
         (warn.length ? `\n\n注意：\n${warn.join('\n')}` : '') + (bad2.length ? `\n\n看不懂的行（沒寫入）：\n${bad2.join('\n')}` : '') +
         `\n\n網站：https://eroom.yzprojecttw.com/?p=${pp}&d=${dates[0]}`);
@@ -344,12 +345,12 @@ export async function onRequest(ctx) {
       for (const pp of ps) { const c = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first(); cfgs[pp] = c ? JSON.parse(c.data).rooms || [] : []; }
       const map = {};
       for (const r of results) { if (!ps.includes(r.prop)) continue; const x = JSON.parse(r.data); if (!x.kind) continue; ((map[r.date] ||= {})[r.prop] ||= []).push([r.room, x]); }
-      const out = [`E·ROOM 房況 ${from} ～ ${to}（${ps.map((x) => ({ ersu: '貳宿', eryanglou: '貳洋樓' })[x]).join('、')}）`, ''];
+      const out = [`E·ROOM 房況 ${from} ～ ${to}（${ps.map((x) => PNAME[x]).join('、')}）`, ''];
       for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z'); t += 864e5) {
         const d = new Date(t).toISOString().slice(0, 10);
         for (const pp of ps) {
           const rows = (map[d]?.[pp] || []).sort((a, b) => cfgs[pp].indexOf(a[0]) - cfgs[pp].indexOf(b[0]));
-          const name = { ersu: '貳宿', eryanglou: '貳洋樓' }[pp];
+          const name = PNAME[pp];
           if (!rows.length) { out.push(`${d} ${name}：沒有登記`); continue; }
           const need = rows.filter(([, x]) => x.status === 'todo' || x.status === 'done').length;
           out.push(`${d} ${name}：要掃 ${need} 間｜` + rows.map(([r, x]) => `${r} ${LBL[x.kind] || x.kind}${x.kind === '續住' ? (x.status ? '要掃' : '不用掃') : ''}${x.note ? `（${x.note}）` : ''}`).join('、'));
@@ -357,6 +358,9 @@ export async function onRequest(ctx) {
       }
       return new Response(out.join('\n'), { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
     }
+
+    // ---- 維護／房況紀錄（大家都能新增、編輯、刪除）----
+    if (path === 'logs') return logsApi(request, env, url, m);
 
     // ---- LINE 官方帳號 ----
     if (path.startsWith('line/')) return line(path.slice(5), m, request, env, url);
@@ -492,7 +496,7 @@ export async function onRequest(ctx) {
 
 // ======================= LINE =======================
 // settings：line_secret、line_token、line_groups（{id:{name,at}}）、line_target、line_enabled、line_last、cron_key
-const PROP_NAME = { ersu: '貳宿', eryanglou: '貳洋樓' };
+const PROP_NAME = PNAME;
 const KIND_LABEL = { '退房': '退房', '退入': '退房→入住', '續住': '續住' };
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -560,9 +564,15 @@ async function targets(env) {
   return t;
 }
 
+// 每館開關：每日推播（預設 貳宿／貳洋樓 開、貳侶 關）、群組自動登記紀錄（預設 貳侶 開）
+async function pushOn(env, p) { const v = await getS(env, 'line_push_' + p); return v == null || v === '' ? p !== 'erlu' : v === '1'; }
+async function autologOn(env, p) { const v = await getS(env, 'line_autolog_' + p); return v == null || v === '' ? p === 'erlu' : v === '1'; }
+
 async function unregistered(env, date) {
   const out = [];
+  const tg = await targets(env);
   for (const p of PROPS) {
+    if (!tg[p] || !(await pushOn(env, p))) continue;
     const r = await env.DB.prepare("SELECT count(*) n FROM records WHERE prop=? AND date=? AND json_extract(data,'$.kind') <> ''").bind(p, date).first();
     if (!r || !r.n) out.push(p);
   }
@@ -586,6 +596,7 @@ async function pushDaily(env, { force = false, only = null } = {}) {
   for (const p of PROPS) {
     if (only && p !== only) continue;
     if (!tg[p]) { skipped.push(PROP_NAME[p] + '：沒有綁定群組'); continue; }
+    if (!force && !(await pushOn(env, p))) { skipped.push(PROP_NAME[p] + '：每日推播關閉'); continue; }
     if (!force && (await getS(env, 'line_last_' + p)) === date) { skipped.push(PROP_NAME[p] + '：今天已經傳過'); continue; }
     if (!force && (await unregistered(env, date)).includes(p)) { skipped.push(PROP_NAME[p] + '：今天還沒登記'); unreg.push(PROP_NAME[p]); continue; }
     const text = await dailyText(env, date, [p]);
@@ -621,18 +632,28 @@ async function line(sub, m, request, env, url) {
         continue;
       }
       if (ev.type === 'leave') { delete gs[gid]; changed = true; for (const p of PROPS) if ((await getS(env, 'line_target_' + p)) === gid) await setS(env, 'line_target_' + p, ''); continue; }
+      if (ev.type === 'unsend' && ev.unsend?.messageId) { await env.DB.prepare('UPDATE logs SET deleted=1, updated_at=? WHERE line_msg=?').bind(Date.now(), ev.unsend.messageId).run(); continue; }
       const text = ev.type === 'message' && ev.message?.type === 'text' ? (ev.message.text || '').trim() : '';
+      if (ev.type === 'message' && text && !/綁定/.test(text)) {
+        const tg = await targets(env);
+        const p = PROPS.find((x) => tg[x] === gid);
+        if (p && (await autologOn(env, p))) {
+          const res = await autoLog(env, p, text, ev, gid, token);
+          if (res && token && ev.replyToken) { try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: res }] }) }); } catch {} }
+        }
+        continue;
+      }
       if (ev.type !== 'join' && !/綁定/.test(text)) continue;
       let name = gs[gid]?.name || '';
       if (token) { try { name = (await lineApi(token, 'group/' + gid + '/summary')).groupName || name; } catch {} }
       gs[gid] = { name, at: Date.now() }; changed = true;
       let msg;
       if (ev.type === 'join') {
-        msg = '已連上 E·ROOM 房務。\n這個群組要收哪一館，請傳「綁定貳宿」或「綁定貳洋樓」。綁定後每天 10:50 會自動傳那一館今日要掃的房間。';
+        msg = '已連上 E·ROOM 房務。\n這個群組是哪一館，請傳「綁定貳宿」「綁定貳洋樓」或「綁定貳侶」。';
       } else if (/綁定/.test(text)) {
-        const p = /洋樓/.test(text) ? 'eryanglou' : /貳宿|二宿/.test(text) ? 'ersu' : null;
-        if (!p) msg = '請傳「綁定貳宿」或「綁定貳洋樓」。';
-        else { await setS(env, 'line_target_' + p, gid); msg = `已綁定【${PROP_NAME[p]}】。每天 10:50 會傳${PROP_NAME[p]}今日要掃的房間。`; }
+        const p = /洋樓/.test(text) ? 'eryanglou' : /貳宿|二宿/.test(text) ? 'ersu' : /貳侶|二侶/.test(text) ? 'erlu' : null;
+        if (!p) msg = '請傳「綁定貳宿」「綁定貳洋樓」或「綁定貳侶」。';
+        else { await setS(env, 'line_target_' + p, gid); const lines = [`已綁定【${PROP_NAME[p]}】。`]; if (await pushOn(env, p)) lines.push('每天 10:50 會傳今日要掃的房間。'); if (await autologOn(env, p)) lines.push('群組裡回報冷氣清洗、維修、房況（要寫房號），會自動登記到 E·ROOM 紀錄。例如：「冷氣清洗 201 202」「203 馬桶修好了」。'); msg = lines.join('\n'); }
       }
       if (token && ev.replyToken) {
         try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: msg }] }) }); } catch {}
@@ -668,7 +689,8 @@ async function line(sub, m, request, env, url) {
     return json({
       hasSecret: !!(await getS(env, 'line_secret')), hasToken: !!(await getS(env, 'line_token')),
       groups: await groups(env), targets: await targets(env),
-      enabled: (await getS(env, 'line_enabled')) === '1', last: { ersu: (await getS(env, 'line_last_ersu')) || '', eryanglou: (await getS(env, 'line_last_eryanglou')) || '' },
+      enabled: (await getS(env, 'line_enabled')) === '1', last: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, (await getS(env, 'line_last_' + p)) || '']))),
+      push: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await pushOn(env, p)]))), autolog: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await autologOn(env, p)]))),
       webhook: url.origin + '/api/line/webhook', adminBound: !!(await getS(env, 'line_admin')),
     });
   }
@@ -684,12 +706,104 @@ async function line(sub, m, request, env, url) {
     if (b.targets && typeof b.targets === 'object') for (const p of PROPS) if (typeof b.targets[p] === 'string') await setS(env, 'line_target_' + p, b.targets[p]);
     if (typeof b.enabled === 'boolean') await setS(env, 'line_enabled', b.enabled ? '1' : '0');
     if (b.clearAdmin === true) await setS(env, 'line_admin', '');
+    if (b.push && typeof b.push === 'object') for (const p of PROPS) if (typeof b.push[p] === 'boolean') await setS(env, 'line_push_' + p, b.push[p] ? '1' : '0');
+    if (b.autolog && typeof b.autolog === 'object') for (const p of PROPS) if (typeof b.autolog[p] === 'boolean') await setS(env, 'line_autolog_' + p, b.autolog[p] ? '1' : '0');
     return json({ ok: true });
   }
-  if (sub === 'preview' && m === 'GET') { const d = twDate(Date.now()); return json({ texts: { ersu: await dailyText(env, d, ['ersu']), eryanglou: await dailyText(env, d, ['eryanglou']) } }); }
+  if (sub === 'preview' && m === 'GET') { const d = twDate(Date.now()); return json({ texts: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await dailyText(env, d, [p])]))) }); }
   if (sub === 'test' && m === 'POST') {
     const b = await body(request);
     try { return json(await pushDaily(env, { force: true, only: PROPS.includes(b?.p) ? b.p : null })); } catch (e) { return bad(e.message); }
+  }
+  return bad('找不到', 404);
+}
+
+
+// ======================= 維護／房況紀錄 =======================
+// logs(id, prop, room, date, cat, content, by, source, line_msg, deleted, created_at, updated_at)
+const LOG_CATS = ['冷氣清洗', '冷氣維修', '維修', '房況', '其他'];
+function guessCat(t) {
+  const ac = /冷氣|空調|AC|濾網/i.test(t);
+  const fix = /修|壞|故障|報修|漏水|不冷|不涼|異音|換|更換|滴水|跳電/.test(t);
+  if (ac && /洗|清/.test(t) && !/壞|故障|不冷|不涼/.test(t)) return '冷氣清洗';
+  if (ac) return fix ? '冷氣維修' : '冷氣清洗';
+  if (fix) return '維修';
+  if (/房況|掃|髒|乾淨|整理|消毒|除濕|異味|蟲|床|毛巾|備品/.test(t)) return '房況';
+  return null;
+}
+function findRooms(t, rooms) {
+  const set = new Map(rooms.map((r) => [r.toUpperCase(), r]));
+  const toks = String(t).replace(/(?<![0-9])(\d{1,2})[\/.](\d{1,2})(?![0-9])/g, ' ').match(/[0-9A-Za-z]+/g) || [];
+  const out = [];
+  for (const x of toks) {
+    const r = rooms.length ? set.get(x.toUpperCase()) : (/^\d{3,4}[A-Za-z]?$/.test(x) ? x : null);
+    if (r && !out.includes(r)) out.push(r);
+  }
+  return out;
+}
+function msgDate(t) {
+  const m = String(t).match(/(?<![0-9])(\d{1,2})[\/.](\d{1,2})(?![0-9])/);
+  if (m) { const d = toDate(null, m[1], m[2]); if (d && d <= twDate(Date.now())) return d; }
+  if (/昨天|昨日/.test(t)) return addDay(twDate(Date.now()), -1);
+  return twDate(Date.now());
+}
+async function autoLog(env, p, text, ev, gid, token) {
+  const cat = guessCat(text);
+  if (!cat) return null;
+  const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(p).first();
+  const rooms = findRooms(text, cfg ? JSON.parse(cfg.data).rooms || [] : []);
+  if (!rooms.length) return null;
+  let by = '';
+  const uid = ev.source && ev.source.userId;
+  if (token && uid) { try { by = (await lineApi(token, 'group/' + gid + '/member/' + uid)).displayName || ''; } catch {} }
+  const date = msgDate(text), now = Date.now();
+  await env.DB.batch(rooms.map((r) => env.DB.prepare('INSERT INTO logs (prop,room,date,cat,content,by,source,line_msg,deleted,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,0,?,?)')
+    .bind(p, r, date, cat, text.slice(0, 500), by.slice(0, 30), 'line', ev.message?.id || null, now, now)));
+  const d = new Date(date + 'T00:00:00Z');
+  return `✅ 已登記${cat}｜${d.getUTCMonth() + 1}/${d.getUTCDate()}｜${rooms.join('、')}`;
+}
+
+async function logsApi(request, env, url, m) {
+  const p = url.searchParams.get('p');
+  if (m === 'GET') {
+    if (!PROPS.includes(p)) return bad('館別錯誤');
+    const q = ['prop=?', 'deleted=0']; const args = [p];
+    const cat = url.searchParams.get('cat'), room = url.searchParams.get('room');
+    if (cat && LOG_CATS.includes(cat)) { q.push('cat=?'); args.push(cat); }
+    if (room) { q.push('room=?'); args.push(room); }
+    const { results } = await env.DB.prepare(`SELECT id,room,date,cat,content,by,source,created_at,updated_at FROM logs WHERE ${q.join(' AND ')} ORDER BY date DESC, id DESC LIMIT 300`).bind(...args).all();
+    const { results: last } = await env.DB.prepare("SELECT room, cat, max(date) d FROM logs WHERE prop=? AND deleted=0 AND cat IN ('冷氣清洗','冷氣維修') GROUP BY room, cat").bind(p).all();
+    const ac = {};
+    for (const r of last) (ac[r.room] ||= {})[r.cat === '冷氣清洗' ? 'clean' : 'fix'] = r.d;
+    return json({ logs: results, ac, cats: LOG_CATS });
+  }
+  const b = await body(request);
+  if (m === 'POST') {
+    if (!b || !PROPS.includes(b.p) || !LOG_CATS.includes(b.cat) || !DATE_RE.test(b.date || '')) return bad('參數錯誤');
+    const rooms = [...new Set((Array.isArray(b.rooms) ? b.rooms : [b.room]).map((x) => String(x || '').trim()).filter((x) => /^[0-9A-Za-z\-]{1,8}$/.test(x) || x === '公共'))].slice(0, 40);
+    if (!rooms.length) return bad('請選房號');
+    const now = Date.now();
+    await env.DB.batch(rooms.map((r) => env.DB.prepare('INSERT INTO logs (prop,room,date,cat,content,by,source,line_msg,deleted,created_at,updated_at) VALUES (?,?,?,?,?,?,?,NULL,0,?,?)')
+      .bind(b.p, r, b.date, b.cat, String(b.content || '').slice(0, 500), String(b.by || '').slice(0, 30), 'web', now, now)));
+    return json({ ok: true, saved: rooms.length });
+  }
+  if (m === 'PUT' || m === 'PATCH') {
+    if (!b || !Number.isInteger(b.id)) return bad('參數錯誤');
+    const old = await env.DB.prepare('SELECT * FROM logs WHERE id=?').bind(b.id).first();
+    if (!old) return bad('找不到這筆紀錄', 404);
+    const room = typeof b.room === 'string' && b.room.trim() ? b.room.trim().slice(0, 8) : old.room;
+    const date = DATE_RE.test(b.date || '') ? b.date : old.date;
+    const cat = LOG_CATS.includes(b.cat) ? b.cat : old.cat;
+    const content = typeof b.content === 'string' ? b.content.slice(0, 500) : old.content;
+    const by = typeof b.by === 'string' ? b.by.slice(0, 30) : old.by;
+    await env.DB.prepare('UPDATE logs SET room=?,date=?,cat=?,content=?,by=?,updated_at=? WHERE id=?').bind(room, date, cat, content, by, Date.now(), b.id).run();
+    return json({ ok: true });
+  }
+  if (m === 'DELETE') {
+    const id = parseInt(url.searchParams.get('id') || (b && b.id), 10);
+    if (!id) return bad('參數錯誤');
+    await env.DB.prepare('UPDATE logs SET deleted=1, updated_at=? WHERE id=?').bind(Date.now(), id).run();
+    return json({ ok: true });
   }
   return bad('找不到', 404);
 }
