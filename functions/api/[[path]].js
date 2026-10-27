@@ -818,7 +818,10 @@ async function autoLog(env, p, text, ev, gid, token) {
   const groups = {};
   for (const it of items) { const k = it.cat + '|' + it.date + '|' + (it.summary || ''); (groups[k] ||= []).push(it.room); }
   const lines = Object.keys(groups).map((k) => { const [c, d, sm] = k.split('|'); const x = new Date(d + 'T00:00:00Z'); return `・${c} ${x.getUTCMonth() + 1}/${x.getUTCDate()}｜${groups[k].join('、')}${sm ? '｜' + sm : ''}`; });
-  return `✅ 已登記到 E·ROOM 紀錄\n${lines.join('\n')}\n記錯了：收回這則訊息就會刪掉，或到網站修改。`;
+  const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(p).first();
+  const known = new Set((cfg ? JSON.parse(cfg.data).rooms || [] : []).map((x) => x.toUpperCase()));
+  const odd = known.size ? [...new Set((text.replace(/(?<![0-9])\d{1,2}[\/.]\d{1,2}(?![0-9])/g, ' ').match(/(?<![0-9])\d{3}(?![0-9])/g) || []).filter((x) => !known.has(x)))] : [];
+  return `✅ 已登記到 E·ROOM 紀錄\n${lines.join('\n')}${odd.length ? `\n⚠️ 沒有這些房號，沒登記：${odd.join('、')}` : ''}\n記錯了：收回這則訊息就會刪掉，或到網站修改。`;
 }
 
 async function logsApi(request, env, url, m) {
