@@ -4,7 +4,7 @@
 // 原則：只做 upsert，不刪除舊資料。
 
 const PROPS = ['ersu', 'eryanglou', 'erlu'];
-const PNAME = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳侶' };
+const PNAME = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳旅' };
 const DOC_KEYS = ['handbook', 'stay', 'checkout', 'checklist', 'supplies', 'roominfo'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ROOM_RE = /^[0-9A-Za-z\-]{1,8}$/;
@@ -231,7 +231,7 @@ export async function onRequest(ctx) {
       const d0 = url.searchParams.get('d') || twDate(Date.now());
       let t = url.searchParams.get('t') || '';
       if (m === 'POST') t = (await request.text()) || t;
-      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳侶）', 400);
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳旅）', 400);
       if (!DATE_RE.test(d0)) return txt('d 日期格式要像 2026-10-21', 400);
       const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
       const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
@@ -264,7 +264,7 @@ export async function onRequest(ctx) {
       const key = await env.DB.prepare("SELECT v FROM settings WHERE k='bot_key'").first();
       if (!key || url.searchParams.get('k') !== key.v) return txt('金鑰錯誤', 401);
       const pp = url.searchParams.get('p');
-      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳侶）', 400);
+      if (!PROPS.includes(pp)) return txt('p 要填 ersu（貳宿）、eryanglou（貳洋樓）或 erlu（貳旅）', 400);
       let t = url.searchParams.get('t') || '';
       if (m === 'POST') t = (await request.text()) || t;
       const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first();
@@ -361,9 +361,15 @@ export async function onRequest(ctx) {
 
     // ---- 維護／房況紀錄（大家都能新增、編輯、刪除）----
     if (path === 'logs') return logsApi(request, env, url, m);
+    // 管理員測試：這段回報會被登記成什麼（不寫入）
+    if (path === 'logs/parse' && m === 'GET') {
+      if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
+      if (!PROPS.includes(p)) return bad('館別錯誤');
+      return json(await parseReport(env, p, url.searchParams.get('t') || ''));
+    }
 
     // ---- LINE 官方帳號 ----
-    if (path.startsWith('line/')) return line(path.slice(5), m, request, env, url);
+    if (path.startsWith('line/')) return line(path.slice(5), m, request, env, url, ctx);
 
     // ---- 月報表 ----
     if (path === 'report' && m === 'GET') {
@@ -564,7 +570,7 @@ async function targets(env) {
   return t;
 }
 
-// 每館開關：每日推播（預設 貳宿／貳洋樓 開、貳侶 關）、群組自動登記紀錄（預設 貳侶 開）
+// 每館開關：每日推播（預設 貳宿／貳洋樓 開、貳侶 關）、群組自動登記紀錄（預設 貳旅 開）
 async function pushOn(env, p) { const v = await getS(env, 'line_push_' + p); return v == null || v === '' ? p !== 'erlu' : v === '1'; }
 async function autologOn(env, p) { const v = await getS(env, 'line_autolog_' + p); return v == null || v === '' ? p === 'erlu' : v === '1'; }
 
@@ -609,7 +615,7 @@ async function pushDaily(env, { force = false, only = null } = {}) {
   return { ok: true, date, sent, skipped };
 }
 
-async function line(sub, m, request, env, url) {
+async function line(sub, m, request, env, url, ctx) {
   // LINE 平台 webhook：記錄機器人被加入的群組
   if (sub === 'webhook' && m === 'POST') {
     const raw = await request.text();
@@ -638,8 +644,12 @@ async function line(sub, m, request, env, url) {
         const tg = await targets(env);
         const p = PROPS.find((x) => tg[x] === gid);
         if (p && (await autologOn(env, p))) {
-          const res = await autoLog(env, p, text, ev, gid, token);
-          if (res && token && ev.replyToken) { try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: res }] }) }); } catch {} }
+          // AI 解析可能要幾秒，先回 LINE 200，背景處理完再回覆
+          const job = (async () => {
+            const res = await autoLog(env, p, text, ev, gid, token);
+            if (res && token && ev.replyToken) { try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: res }] }) }); } catch {} }
+          })().catch(() => {});
+          if (ctx && ctx.waitUntil) ctx.waitUntil(job); else await job;
         }
         continue;
       }
@@ -649,10 +659,10 @@ async function line(sub, m, request, env, url) {
       gs[gid] = { name, at: Date.now() }; changed = true;
       let msg;
       if (ev.type === 'join') {
-        msg = '已連上 E·ROOM 房務。\n這個群組是哪一館，請傳「綁定貳宿」「綁定貳洋樓」或「綁定貳侶」。';
+        msg = '已連上 E·ROOM 房務。\n這個群組是哪一館，請傳「綁定貳宿」「綁定貳洋樓」或「綁定貳旅」。';
       } else if (/綁定/.test(text)) {
-        const p = /洋樓/.test(text) ? 'eryanglou' : /貳宿|二宿/.test(text) ? 'ersu' : /貳侶|二侶/.test(text) ? 'erlu' : null;
-        if (!p) msg = '請傳「綁定貳宿」「綁定貳洋樓」或「綁定貳侶」。';
+        const p = /洋樓/.test(text) ? 'eryanglou' : /貳宿|二宿/.test(text) ? 'ersu' : /貳旅|二旅|貳侶|二侶/.test(text) ? 'erlu' : null;
+        if (!p) msg = '請傳「綁定貳宿」「綁定貳洋樓」或「綁定貳旅」。';
         else { await setS(env, 'line_target_' + p, gid); const lines = [`已綁定【${PROP_NAME[p]}】。`]; if (await pushOn(env, p)) lines.push('每天 10:50 會傳今日要掃的房間。'); if (await autologOn(env, p)) lines.push('群組裡回報冷氣清洗、維修、房況（要寫房號），會自動登記到 E·ROOM 紀錄。例如：「冷氣清洗 201 202」「203 馬桶修好了」。'); msg = lines.join('\n'); }
       }
       if (token && ev.replyToken) {
@@ -747,20 +757,68 @@ function msgDate(t) {
   if (/昨天|昨日/.test(t)) return addDay(twDate(Date.now()), -1);
   return twDate(Date.now());
 }
-async function autoLog(env, p, text, ev, gid, token) {
-  const cat = guessCat(text);
-  if (!cat) return null;
+// 用 AI 讀懂比較亂的回報：多間、多件事、「2樓全部」、口語日期；AI 失敗就用關鍵字規則
+const AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+async function aiParse(env, text, rooms) {
+  if (!env.AI) return null;
+  const today = twDate(Date.now());
+  const sys = `你是民宿「房務紀錄」助手。員工在 LINE 群組回報，請找出需要登記的紀錄。
+今天是 ${today}（台灣）。這一館的房號：${rooms.length ? rooms.join('、') : '（未設定，只能用訊息裡明確寫出的房號）'}。
+類型只能是：冷氣清洗（冷氣/空調/濾網 清洗、保養）、冷氣維修（冷氣壞了、不冷、漏水、報修、修好、更換零件）、維修（冷氣以外的設備壞了、修理、更換：燈、馬桶、水龍頭、熱水器、門鎖、電視…）、房況（房間狀態：髒、異味、蟲、床、備品、消毒、客人損壞、需要注意的狀況）、其他（跟房間有關但不屬於上面）。
+規則：
+- 只登記「回報已經發生或已完成的事」。聊天、問句、打招呼、排班、請別人去做但還沒做的，回傳空陣列。
+- 一則訊息可能有多間、多件事，每間每件事各一筆。
+- 「2樓全部」「全部房間」要展開成房號清單裡對應的房間。
+- 日期：訊息寫 M/D、昨天、前天就換算成 YYYY-MM-DD，沒寫就是今天。不能是未來。
+- summary 用繁體中文，20 字內，保留重點（做了什麼、狀況、零件、師傅）。
+- 房號一定要出現在房號清單（或訊息裡），不確定就不要寫。`;
+  const schema = { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { room: { type: 'string' }, cat: { type: 'string', enum: LOG_CATS }, date: { type: 'string' }, summary: { type: 'string' } }, required: ['room', 'cat', 'date', 'summary'] } } }, required: ['items'] };
+  try {
+    const r = await env.AI.run(AI_MODEL, { messages: [{ role: 'system', content: sys }, { role: 'user', content: text.slice(0, 1500) }], response_format: { type: 'json_schema', json_schema: schema }, max_tokens: 900, temperature: 0 });
+    let out = r && r.response;
+    if (typeof out === 'string') { const m = out.match(/\{[\s\S]*\}/); out = m ? JSON.parse(m[0]) : null; }
+    if (!out || !Array.isArray(out.items)) return null;
+    const set = new Map(rooms.map((x) => [x.toUpperCase(), x]));
+    const seen = new Set(), items = [];
+    for (const it of out.items) {
+      const rr = String(it.room || '').trim().toUpperCase();
+      const room = rooms.length ? set.get(rr) : (/^\d{3,4}[A-Z]?$/.test(rr) && text.toUpperCase().includes(rr) ? rr : null);
+      if (!room || !LOG_CATS.includes(it.cat)) continue;
+      let date = DATE_RE.test(it.date || '') ? it.date : today;
+      if (date > today || date < addDay(today, -60)) date = today;
+      const k = room + '|' + it.cat; if (seen.has(k)) continue; seen.add(k);
+      items.push({ room, cat: it.cat, date, summary: String(it.summary || '').slice(0, 80) });
+    }
+    return items;
+  } catch (e) { return null; }
+}
+function ruleParse(text, rooms) {
+  const cat = guessCat(text); if (!cat) return [];
+  const date = msgDate(text);
+  return findRooms(text, rooms).map((room) => ({ room, cat, date, summary: '' }));
+}
+async function parseReport(env, p, text) {
   const cfg = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(p).first();
-  const rooms = findRooms(text, cfg ? JSON.parse(cfg.data).rooms || [] : []);
-  if (!rooms.length) return null;
+  const rooms = cfg ? JSON.parse(cfg.data).rooms || [] : [];
+  // 先篩：沒有像房號的字、也沒有「樓／全部」就不用問 AI
+  if (!findRooms(text, rooms).length && !/樓|全部|每間|所有房/.test(text)) return { items: [], via: 'skip' };
+  const ai = await aiParse(env, text, rooms);
+  if (ai) return { items: ai, via: 'ai' };
+  return { items: ruleParse(text, rooms), via: 'rule' };
+}
+async function autoLog(env, p, text, ev, gid, token) {
+  const { items } = await parseReport(env, p, text);
+  if (!items.length) return null;
   let by = '';
   const uid = ev.source && ev.source.userId;
   if (token && uid) { try { by = (await lineApi(token, 'group/' + gid + '/member/' + uid)).displayName || ''; } catch {} }
-  const date = msgDate(text), now = Date.now();
-  await env.DB.batch(rooms.map((r) => env.DB.prepare('INSERT INTO logs (prop,room,date,cat,content,by,source,line_msg,deleted,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,0,?,?)')
-    .bind(p, r, date, cat, text.slice(0, 500), by.slice(0, 30), 'line', ev.message?.id || null, now, now)));
-  const d = new Date(date + 'T00:00:00Z');
-  return `✅ 已登記${cat}｜${d.getUTCMonth() + 1}/${d.getUTCDate()}｜${rooms.join('、')}`;
+  const now = Date.now();
+  await env.DB.batch(items.map((it) => env.DB.prepare('INSERT INTO logs (prop,room,date,cat,content,raw,by,source,line_msg,deleted,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,0,?,?)')
+    .bind(p, it.room, it.date, it.cat, it.summary || text.slice(0, 500), text.slice(0, 1000), by.slice(0, 30), 'line', ev.message?.id || null, now, now)));
+  const groups = {};
+  for (const it of items) { const k = it.cat + '|' + it.date + '|' + (it.summary || ''); (groups[k] ||= []).push(it.room); }
+  const lines = Object.keys(groups).map((k) => { const [c, d, sm] = k.split('|'); const x = new Date(d + 'T00:00:00Z'); return `・${c} ${x.getUTCMonth() + 1}/${x.getUTCDate()}｜${groups[k].join('、')}${sm ? '｜' + sm : ''}`; });
+  return `✅ 已登記到 E·ROOM 紀錄\n${lines.join('\n')}\n記錯了：收回這則訊息就會刪掉，或到網站修改。`;
 }
 
 async function logsApi(request, env, url, m) {
@@ -771,7 +829,7 @@ async function logsApi(request, env, url, m) {
     const cat = url.searchParams.get('cat'), room = url.searchParams.get('room');
     if (cat && LOG_CATS.includes(cat)) { q.push('cat=?'); args.push(cat); }
     if (room) { q.push('room=?'); args.push(room); }
-    const { results } = await env.DB.prepare(`SELECT id,room,date,cat,content,by,source,created_at,updated_at FROM logs WHERE ${q.join(' AND ')} ORDER BY date DESC, id DESC LIMIT 300`).bind(...args).all();
+    const { results } = await env.DB.prepare(`SELECT id,room,date,cat,content,raw,by,source,created_at,updated_at FROM logs WHERE ${q.join(' AND ')} ORDER BY date DESC, id DESC LIMIT 300`).bind(...args).all();
     const { results: last } = await env.DB.prepare("SELECT room, cat, max(date) d FROM logs WHERE prop=? AND deleted=0 AND cat IN ('冷氣清洗','冷氣維修') GROUP BY room, cat").bind(p).all();
     const ac = {};
     for (const r of last) (ac[r.room] ||= {})[r.cat === '冷氣清洗' ? 'clean' : 'fix'] = r.d;

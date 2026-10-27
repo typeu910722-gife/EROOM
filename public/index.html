@@ -251,7 +251,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
     <div class="props" role="group" aria-label="館別">
       <button data-prop="ersu">貳宿</button>
       <button data-prop="eryanglou">貳洋樓</button>
-      <button data-prop="erlu">貳侶</button>
+      <button data-prop="erlu">貳旅</button>
     </div>
     <button class="lock" id="lockBtn" aria-label="管理員登入" title="管理員"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
   </div>
@@ -329,7 +329,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 
 <script>
 'use strict';
-const PROPS = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳侶' };
+const PROPS = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳旅' };
 // kind（存檔值）→ 顯示
 const KINDS = {
   '退房': { label: '退房', color: 'var(--todo)', status: 'todo' },
@@ -973,6 +973,7 @@ function openLogForm(id, presetRoom) {
       <div class="lbl">日期</div><input type="date" id="fDate" value="${esc(f.date)}">
       <div class="lbl">內容</div><textarea id="fCont" placeholder="例如：濾網清洗、冷媒補充、師傅：王先生">${esc(f.content)}</textarea>
       <div class="lbl">登記人</div><input type="text" id="fBy" value="${esc(f.by)}" placeholder="你的名字">
+      ${old && old.raw && old.raw !== old.content ? `<div class="lbl">LINE 原文</div><div class="doc" style="white-space:pre-wrap;font-size:13px;padding:10px 12px;color:var(--mute)">${esc(old.raw)}</div>` : ''}
       <div class="btnrow">${old ? '<button class="btn ghost" id="fDel" style="color:var(--prio);border-color:var(--prio)">刪除</button>' : ''}<button class="btn ghost" id="fClose">取消</button><button class="btn wide" id="fSave">儲存</button></div>`;
   };
   const keep = () => { const c = $('#fCont'), d = $('#fDate'), b = $('#fBy'), r = $('#fRooms'); if (c) f.content = c.value; if (d) f.date = d.value.trim(); if (b) f.by = b.value.trim(); if (r) f.rooms = r.value.split(/[\s,，、]+/).filter(Boolean); };
@@ -1023,7 +1024,7 @@ async function renderLine() {
     </div>
     <h2>各館推播群組</h2>
     <div class="doc" style="padding-top:12px">
-      <p class="muted small" style="margin-top:0">在群組裡傳「綁定貳宿」「綁定貳洋樓」或「綁定貳侶」就會自動綁好，也可以在這裡選。每個群組只會收到自己那一館。</p>
+      <p class="muted small" style="margin-top:0">在群組裡傳「綁定貳宿」「綁定貳洋樓」或「綁定貳旅」就會自動綁好，也可以在這裡選。每個群組只會收到自己那一館。</p>
       ${Object.keys(PROPS).map((p) => `<div class="lbl">${PROPS[p]}</div>
         <select data-lnp="${p}"><option value="">不傳送</option>${gids.map((g) => `<option value="${esc(g)}" ${c.targets[p] === g ? 'selected' : ''}>${esc(gname(g))}</option>`).join('')}</select>
         <label class="sitem" style="padding:4px 0;border:0"><input type="checkbox" data-lnpush="${p}" ${c.push[p] ? 'checked' : ''}> 每天 10:50 傳今日打掃</label>
