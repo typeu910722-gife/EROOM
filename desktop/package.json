@@ -1,0 +1,56 @@
+{
+  "name": "eroom-desktop",
+  "productName": "EROOM",
+  "version": "1.0.0",
+  "description": "E·ROOM 房務｜本機主機版",
+  "author": "歪計劃 YZ PROJECT STUDIO",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "main.mjs",
+  "scripts": {
+    "prepare-app": "node build.mjs",
+    "serve": "node build.mjs && node core-cli.mjs",
+    "start": "node build.mjs && electron .",
+    "dist": "node build.mjs && electron-builder --win --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9",
+    "sql.js": "^1.14.2"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "tw.yzproject.eroom",
+    "productName": "EROOM",
+    "artifactName": "EROOM-Setup.${ext}",
+    "files": [
+      "main.mjs",
+      "core.mjs",
+      "preload.cjs",
+      "splash.html",
+      "import.html",
+      "web/**",
+      "api.mjs",
+      "schema.sql",
+      "icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "E·ROOM 房務"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "typeu910722-gife",
+      "repo": "EROOM"
+    }
+  }
+}

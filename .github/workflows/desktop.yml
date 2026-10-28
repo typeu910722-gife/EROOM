@@ -1,0 +1,55 @@
+name: Desktop build
+
+# 網站或 API 有改就自動打包 Windows 桌面版並發布到 GitHub Releases，
+# 桌面版會自己檢查更新（版本號 1.0.<執行次數>）。也可以在 Actions 頁手動執行。
+on:
+  push:
+    branches: [main]
+    paths: ['public/**', 'functions/**', 'schema.sql', 'desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - name: Set version
+        id: v
+        shell: bash
+        run: |
+          V="1.0.${{ github.run_number }}"
+          node -e "const f='package.json',p=require('./'+f);p.version='$V';require('fs').writeFileSync(f,JSON.stringify(p,null,2))"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+      - name: Build installer
+        run: npm run dist
+      - name: Release notes
+        shell: bash
+        run: |
+          printf '%s\n\n%s\n' "${{ github.event.head_commit.message }}" 'Windows 安裝檔：下載 EROOM-Setup.exe 執行。第一次若出現「Windows 已保護您的電腦」，按「其他資訊 → 仍要執行」。已安裝的桌面版會自動更新。' > notes.md
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: E·ROOM 桌面版 ${{ steps.v.outputs.version }}
+          make_latest: true
+          body_path: desktop/notes.md
+          files: |
+            desktop/dist/EROOM-Setup.exe
+            desktop/dist/EROOM-Setup.exe.blockmap
+            desktop/dist/latest.yml

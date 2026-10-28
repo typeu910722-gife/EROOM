@@ -64,5 +64,12 @@
 - [x] Apps Script 同步網址改成 eroom.yzprojecttw.com
 - [ ] eroom-cron 的兩個 Cron 待使用者刪除（不刪的話雲端會用舊資料在 10:30／10:50 誤發提醒）
 
+## 桌面版（2026-10-28）
+- [x] desktop/：Electron 44 + sql.js（同 OCTA 做法），core.mjs 跑同一份 API/網站；YZ 進度條、系統匣、開機自動啟動（--hidden）、electron-updater（GitHub Releases）
+- [x] 第一次開啟偵測舊本機版佔用 8787 → 輸入密碼從舊版 /api/dump 搬資料 → 等舊版關閉自動接手；自動嘗試刪除舊開機排程 EROOM
+- [x] .github/workflows/desktop.yml：push main 改到 public/functions/desktop 就自動打包 v1.0.<run_number> 發布
+- [x] 本機 xvfb 測試：搬資料 584 筆、舊版關閉後接手 8787、網站正常
+- [ ] 使用者安裝 EROOM-Setup.exe、搬資料、關掉舊 start.bat
+
 ## 待辦
 - 每天早上把要掃的房間推送到 LINE

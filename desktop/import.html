@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><title>E·ROOM｜搬資料</title>
+<style>
+:root{--bg:#12110e;--panel:#1f1c17;--ink:#efe8da;--mute:#9b927f;--gold:#c9a96a;--gold2:#e4cb93;--line:rgba(201,169,106,.22);--prio:#e08a6d;--done:#8fb08a}
+html,body{min-height:100%;margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+.wrap{max-width:520px;margin:0 auto;padding:48px 24px}
+h1{font-family:"Noto Serif TC",serif;font-size:22px;letter-spacing:.12em;color:var(--gold2);margin:0 0 8px}
+p{color:var(--mute);margin:6px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:20px}
+label{display:flex;gap:10px;align-items:center;padding:6px 0;cursor:pointer}
+input[type=password]{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:10px 12px;font:inherit;margin-top:8px}
+.btns{display:flex;gap:8px;margin-top:18px}
+button{font:inherit;border-radius:999px;padding:10px 20px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--ink)}
+button.p{background:var(--gold);border-color:var(--gold);color:#12110e;flex:1}
+button:disabled{opacity:.5;cursor:default}
+.msg{margin-top:14px;white-space:pre-wrap}.ok{color:var(--done)}.bad{color:var(--prio)}
+.step{display:none}.step.on{display:block}
+code{background:var(--bg);padding:1px 6px;border-radius:4px}
+</style></head>
+<body><div class="wrap">
+  <section class="step" id="s1">
+    <h1 id="t1">搬資料到這台電腦</h1>
+    <p id="d1"></p>
+    <div class="card">
+      <div id="srcs">
+        <label><input type="radio" name="src" value="local" checked> 從舊的本機版（黑色 start.bat 視窗開著）</label>
+        <label><input type="radio" name="src" value="cloud"> 從雲端版（eroom-app.pages.dev）</label>
+      </div>
+      <input type="password" id="pw" placeholder="管理員密碼" autofocus>
+      <div class="btns"><button id="skip">先不用</button><button class="p" id="go">開始搬資料</button></div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </section>
+  <section class="step" id="s2">
+    <h1>資料搬好了 ✓</h1>
+    <p id="cnt"></p>
+    <div class="card" id="closeOld">
+      <p style="color:var(--ink)">最後一步：把舊的本機版關掉</p>
+      <p>關掉那個黑色的 <code>start.bat</code> 視窗（右上角 ✕）。關掉後這裡會自動接手，不用再按任何東西。</p>
+      <p class="msg" id="wait">等待舊版關閉⋯</p>
+    </div>
+    <div class="btns" id="doneBtns" style="display:none"><button class="p" id="open">打開 E·ROOM</button></div>
+  </section>
+</div>
+<script>
+const mode = new URLSearchParams(location.search).get('mode') || 'manual';
+const $ = (s) => document.querySelector(s);
+const show = (id) => { document.querySelectorAll('.step').forEach((x) => x.classList.toggle('on', x.id === id)); };
+const T = {
+  old: ['偵測到舊的本機版還在執行', '把舊版（start.bat）的資料搬到桌面版，輸入管理員密碼就好。搬完再關掉舊版的黑色視窗，桌面版會自動接手。'],
+  busy: ['8787 被其他程式佔用', '有別的程式佔著 8787。如果是舊的本機版，可以先把資料搬過來，再關掉它。'],
+  empty: ['第一次使用：搬資料進來', '這台電腦還沒有 E·ROOM 的資料。選要從哪裡搬，輸入管理員密碼。'],
+  manual: ['從其他地方搬資料', '會用來源的資料覆蓋這台電腦上相同的紀錄（搬之前會自動備份一份）。'],
+};
+$('#t1').textContent = T[mode][0]; $('#d1').textContent = T[mode][1];
+if (mode === 'empty') document.querySelector('input[value=cloud]').checked = true;
+if (mode === 'old' || mode === 'busy') $('#skip').style.display = 'none';
+show('s1');
+$('#skip').onclick = () => (mode === 'manual' ? window.eroomDesk.go() : window.eroomDesk.skip());
+const run = async () => {
+  const pw = $('#pw').value.trim(); if (!pw) return;
+  const src = document.querySelector('input[name=src]:checked').value;
+  $('#go').disabled = true; $('#msg').className = 'msg'; $('#msg').textContent = '搬資料中⋯';
+  try {
+    const r = await window.eroomDesk.importFrom(src, pw);
+    const c = r.counts;
+    $('#cnt').textContent = `房況 ${c.records || 0} 筆、紀錄 ${c.logs || 0} 筆、設定 ${c.settings || 0} 筆（LINE、Grok 金鑰都在裡面）。`;
+    show('s2');
+    if (mode === 'old' || mode === 'busy') window.eroomDesk.waitOld();
+    else { $('#closeOld').style.display = 'none'; $('#doneBtns').style.display = 'flex'; }
+  } catch (e) {
+    $('#go').disabled = false; $('#msg').className = 'msg bad';
+    $('#msg').textContent = String(e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+  }
+};
+$('#go').onclick = run; $('#pw').onkeydown = (e) => { if (e.key === 'Enter') run(); };
+$('#open').onclick = () => window.eroomDesk.go();
+</script></body></html>
