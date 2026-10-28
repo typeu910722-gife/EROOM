@@ -6,7 +6,7 @@
  *
  * 同步金鑰存在「專案設定 → 指令碼屬性」的 SYNC_KEY，不寫在程式碼裡。
  */
-const BASE = 'https://eroom-app.pages.dev';
+const BASE = 'https://eroom.yzprojecttw.com';
 const DAYS_BACK = 35;   // 每次同步最近幾天
 const DAYS_AHEAD = 7;
 const PROP_NAME = { ersu: '貳宿', eryanglou: '貳洋樓' };

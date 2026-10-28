@@ -60,7 +60,9 @@
 - [x] local/server.js：Node 內建 SQLite 模擬 D1 介面，直接跑同一份 functions/api/[[path]].js 與 public/；排程 10:30 check、10:50 daily；每日備份；選用 Workers AI（REST）
 - [x] /api/dump（管理員）+ `server.js import`：從雲端搬資料
 - [x] Windows：start.bat（自動重啟）、import.bat、autostart.bat（bat 只用英文，中文 bat 在 cmd 會亂碼；必須先解壓縮）
-- [ ] 使用者準備好電腦 → 建 Cloudflare Tunnel、eroom.yzprojecttw.com 改指 tunnel、停用 eroom-cron schedules、Grok/試算表網址確認
+- [x] 2026-10-28 切換完成：本機在使用者筆電 E:\哲\EROOM-main\EROOM-main\local；Tunnel eroom-local（ca22fb4e-…）路由 eroom.yzprojecttw.com、eroom-pc.yzprojecttw.com → http://localhost:8787；Pages eroom-app 已拿掉自訂網域（雲端版保留在 eroom-app.pages.dev，資料停在 10/28）
+- [x] Apps Script 同步網址改成 eroom.yzprojecttw.com
+- [ ] eroom-cron 的兩個 Cron 待使用者刪除（不刪的話雲端會用舊資料在 10:30／10:50 誤發提醒）
 
 ## 待辦
 - 每天早上把要掃的房間推送到 LINE
