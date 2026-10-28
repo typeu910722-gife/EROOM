@@ -59,7 +59,7 @@
 - 原因：Cloudflare 帳號 D1 每日 500 萬讀取被 OCTA（ebot DB，10/27 約 643 萬）吃光，E·ROOM 跟著停擺
 - [x] local/server.js：Node 內建 SQLite 模擬 D1 介面，直接跑同一份 functions/api/[[path]].js 與 public/；排程 10:30 check、10:50 daily；每日備份；選用 Workers AI（REST）
 - [x] /api/dump（管理員）+ `server.js import`：從雲端搬資料
-- [x] Windows：啟動.bat（自動重啟）、匯入雲端資料.bat、開機自動啟動.bat
+- [x] Windows：start.bat（自動重啟）、import.bat、autostart.bat（bat 只用英文，中文 bat 在 cmd 會亂碼；必須先解壓縮）
 - [ ] 使用者準備好電腦 → 建 Cloudflare Tunnel、eroom.yzprojecttw.com 改指 tunnel、停用 eroom-cron schedules、Grok/試算表網址確認
 
 ## 待辦

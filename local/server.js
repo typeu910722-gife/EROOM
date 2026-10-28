@@ -1,5 +1,5 @@
 // E·ROOM 本機版
-// 用法（Windows 直接點 啟動.bat）：
+// 用法（Windows：先解壓縮，再點 local\\import.bat、local\\start.bat）：
 //   node local/server.js                 啟動網站（預設 http://localhost:8787）
 //   node local/server.js import <網址> <管理員密碼>   從雲端版搬資料進來
 // 同一份程式（functions/api/[[path]].js、public/）同時給雲端版和本機版用；
@@ -82,10 +82,19 @@ async function callApi(request, path) {
 
 // ---------- 匯入：從雲端版搬資料 ----------
 if (process.argv[2] === 'import') {
-  const base = (process.argv[3] || '').replace(/\/$/, ''), pw = process.argv[4] || '';
-  if (!base || !pw) { console.log('用法：node local/server.js import https://eroom-app.pages.dev 管理員密碼'); process.exit(1); }
+  const base = (process.argv[3] || 'https://eroom-app.pages.dev').replace(/\/$/, '');
+  let pw = process.argv[4] || '';
+  console.log('從雲端版 E·ROOM 把資料搬到這台電腦（會先自動備份目前的本機資料）。');
+  if (!pw) {
+    const { createInterface } = await import('node:readline/promises');
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    pw = (await rl.question('請輸入管理員密碼，按 Enter：')).trim();
+    rl.close();
+  }
+  if (!pw) { console.log('沒有輸入密碼，取消。'); process.exit(1); }
+  console.log('下載中⋯');
   const r = await fetch(base + '/api/dump', { headers: { 'x-admin': pw } });
-  if (!r.ok) { console.log('匯出失敗：', r.status, await r.text()); process.exit(1); }
+  if (!r.ok) { console.log(r.status === 401 ? '密碼錯誤。' : '下載失敗：' + r.status + ' ' + (await r.text()).slice(0, 200)); process.exit(1); }
   const { tables } = await r.json();
   backup('before-import');
   sqlite.exec('BEGIN');
@@ -99,7 +108,7 @@ if (process.argv[2] === 'import') {
     console.log(`  ${t}：${rows.length} 筆`);
   }
   sqlite.exec('COMMIT');
-  console.log(`完成，共匯入 ${n} 筆。現在可以用 啟動.bat 啟動。`);
+  console.log(`完成，共匯入 ${n} 筆。接著點 start.bat 啟動。`);
   process.exit(0);
 }
 
