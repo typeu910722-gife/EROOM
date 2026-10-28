@@ -91,7 +91,7 @@ export async function startCore({ dataDir, port = 8787, log = console.log, onSta
       return j.result;
     },
   } : undefined;
-  const env = { DB, AI, LOCAL: true };
+  const env = { DB, AI, LOCAL: true, VERSION };
   const { onRequest } = await import(pathToFileURL(API).href);
 
   const callApi = async (request, path) => {

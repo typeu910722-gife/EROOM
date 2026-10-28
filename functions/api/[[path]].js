@@ -154,7 +154,7 @@ export async function onRequest(ctx) {
   const p = url.searchParams.get('p');
 
   try {
-    if (path === 'ping') return json({ ok: true, local: !!env.LOCAL });
+    if (path === 'ping') return json({ ok: true, local: !!env.LOCAL, version: env.VERSION || '' });
 
     // 管理員：整個資料庫匯出（搬到本機版用）
     if (path === 'dump' && m === 'GET') {

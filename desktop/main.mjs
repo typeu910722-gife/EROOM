@@ -1,7 +1,7 @@
 // E·ROOM 桌面版（Electron）
 // 這台電腦當主機：跑本機網站（localhost:8787，Cloudflare Tunnel 接到 eroom.yzprojecttw.com）、
 // 資料庫、LINE 推播排程、每日備份。關掉視窗會縮到右下角繼續跑。
-import { app, BrowserWindow, Tray, Menu, Notification, shell, nativeImage, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, Tray, Menu, Notification, shell, nativeImage, ipcMain, dialog, powerMonitor } from 'electron';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -169,6 +169,7 @@ app.whenReady().then(() => {
   createWindow();
   win.webContents.once('did-finish-load', boot);
   setTimeout(() => checkUpdates(false), 15000);
-  setInterval(() => checkUpdates(false), 6 * 3600e3);
+  setInterval(() => checkUpdates(false), 30 * 60e3);
+  powerMonitor.on('resume', () => setTimeout(() => checkUpdates(false), 30000));
 });
 app.on('window-all-closed', (e) => e.preventDefault());
