@@ -251,6 +251,27 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .acc b{display:block;font-family:var(--serif);font-weight:600;font-size:22px;color:var(--ink);line-height:1.1}
 .acc span{display:block;font-size:12px;color:var(--mute)}.acc .ok{color:var(--done)}.acc .old{color:var(--prio)}
 .rpick{display:flex;flex-wrap:wrap;gap:6px}.rpick .chip{font-family:var(--serif);font-size:16px;padding:4px 12px}
+.bfg{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.bfg>.hd{display:flex;align-items:baseline;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line2);color:var(--gold);letter-spacing:.12em}
+.bfg>.hd b{font-family:var(--serif);font-size:22px;color:var(--gold2)}.bfg>.hd span{font-size:12px;color:var(--mute)}
+.bfr{display:flex;gap:12px;padding:9px 14px;border-top:1px solid var(--line2)}.bfg>.hd+.bfr{border-top:0}
+.bfr .no{font-family:var(--serif);font-weight:600;font-size:22px;line-height:1.1;color:var(--gold2);width:48px;flex:none}
+.bfr .bd{flex:1;min-width:0;font-size:14px}
+.bfr .it{display:flex;gap:6px;flex-wrap:wrap;align-items:baseline}.bfr .it i{font-style:normal;color:var(--mute)}
+.bfr .nt{font-size:12px;color:var(--mute);margin-top:2px}
+.bfr .tm{font-family:var(--serif);font-size:15px;color:var(--gold2);flex:none}
+.bdg{display:inline-block;font-size:11.5px;border:1px solid var(--line);border-radius:999px;padding:0 8px;letter-spacing:.06em;color:var(--gold);white-space:nowrap}
+.bdg.red{border-color:var(--prio);color:var(--prio)}.bdg.blue{border-color:var(--in);color:var(--in)}.bdg.dim{color:var(--mute)}
+.tally{display:grid;grid-template-columns:1fr auto;gap:2px 14px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 14px;font-size:14px}
+.tally b{font-family:var(--serif);font-size:18px;color:var(--gold2);text-align:right}
+.rvi{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 14px;margin-bottom:8px}
+.rvi .tp{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.rvi .sc{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--gold2)}.rvi .sc small{font-size:12px;color:var(--mute)}
+.rvi .dt{font-family:var(--serif);font-size:15px;margin-left:auto;color:var(--mute)}
+.rvi .tx{margin:5px 0 0;font-size:14px;white-space:pre-wrap;word-break:break-word}.rvi .tx.dim{color:var(--mute)}
+.rvi .nt{font-size:12px;color:var(--mute);margin-top:3px}
+.rvi.neg{border-color:var(--prio)}
+.bfmini{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 14px;margin:14px 0 0;font-size:14px;color:inherit}
+.bfmini b{font-family:var(--serif);font-size:22px;color:var(--gold2)}
 .bfwrap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;height:calc(100vh - 230px);min-height:420px}
 .bfwrap iframe{width:100%;height:100%;border:0}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 8px 8px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
@@ -313,6 +334,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <section class="page" id="p-log">
     <button class="addbtn" id="newLog">＋ 新增紀錄（冷氣清洗、維修、房況）</button>
     <div class="chips" id="logCats" style="margin:6px 0 4px"></div>
+    <div id="bfMini"></div>
     <div id="acWrap"></div>
     <h2 id="logTitle">紀錄</h2>
     <div id="logBody"></div>
@@ -322,6 +344,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <section class="page" id="p-bf">
     <div class="meta" id="bfMeta" style="margin-top:16px"></div>
     <div id="bfBody"></div>
+  </section>
+
+  <!-- 評論 -->
+  <section class="page" id="p-rev">
+    <div class="meta" id="revMeta" style="margin-top:16px"></div>
+    <div id="revBody"></div>
   </section>
 
   <!-- 手冊 -->
@@ -352,6 +380,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <button data-tab="clean" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20h16M7 20V9l5-5 5 5v11"/><path d="M10 14h4"/></svg>清理</button>
   <button data-tab="fault" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.6-.6-2.5z"/></svg>故障</button>
   <button data-tab="bf" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 10h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>早餐</button>
+  <button data-tab="rev" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>評論</button>
   <button data-tab="today" data-for="std" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>今日</button>
   <button data-tab="log" data-for="none" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/></svg>紀錄</button>
   <button data-tab="book" data-for="std"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
@@ -945,7 +974,8 @@ async function renderLogReport() {
     <h2>各房間</h2>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>房號</th><th>清理</th><th>故障</th><th>最後清理</th></tr></thead><tbody>
       ${rooms.map((r) => { const x = R.rooms[r] || {}; return `<tr><td>${esc(r)}</td><td>${x['清理'] || 0}</td><td style="${x['故障'] ? 'color:var(--prio)' : ''}">${x['故障'] || 0}</td><td>${x['last_清理'] ? mdShort(x['last_清理']) : '—'}</td></tr>`; }).join('')}
-    </tbody></table></div>`;
+    </tbody></table></div><div id="rptRev"></div>`;
+  revReport(from, to);
 }
 async function renderReport() {
   const T = S.rptType;
@@ -1034,6 +1064,7 @@ async function renderLogs(fresh = true) {
     const d = a.clean ? daysAgo(a.clean) : null;
     return `<button class="acc" data-logroom="${esc(r)}"><b>${esc(r)}</b><span class="${d == null ? 'old' : d > 90 ? 'old' : 'ok'}">${a.clean ? '清洗 ' + mdShort(a.clean) + '（' + (d === 0 ? '今天' : d + ' 天前') + '）' : '還沒有清洗紀錄'}</span>${a.fix ? `<span>維修 ${mdShort(a.fix)}</span>` : ''}</button>`;
   }).join('')}</div><p class="muted small" style="margin:0">超過 90 天沒清洗的顯示紅色。點房號可以直接新增那間的紀錄。</p>` : '';
+  $('#bfMini').innerHTML = ''; if (er && S.logCat === '清理') bfMini();
   $('#logTitle').textContent = er ? '最近' + S.logCat + '紀錄' : (S.logCat || '全部') + '紀錄';
   $('#logBody').innerHTML = J.logs.length ? J.logs.map((l) => `<button class="logi" data-logid="${l.id}">
       <span class="no">${esc(l.room)}</span>
@@ -1097,31 +1128,218 @@ function openLogForm(id, presetRoom) {
   openSheet();
 }
 
-// ---------- 早餐（Google 試算表）----------
+// ---------- 評論、早餐（讀 Google 試算表，表上填，網站自動顯示）----------
+const DEFAULT_SHEET = { erlu: '1RxePc9dAOgI3OCnUaRsKCtBgLyTImYA-dCg0d1m_BBc' };
 function sheetId(u) { const m = String(u || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/); return m ? m[1] : ''; }
-function renderBf() {
-  const d = (S.docs.breakfast || {})[S.prop] || {};
-  const id = sheetId(d.url);
-  $('#bfMeta').innerHTML = `${id ? `<a class="btn" href="https://docs.google.com/spreadsheets/d/${id}/edit" target="_blank" rel="noopener" style="text-decoration:none">打開試算表填寫</a>` : ''}${S.admin ? `<button class="btn ghost" id="bfSet" style="margin-left:auto">${id ? '換試算表' : '設定試算表'}</button>` : ''}`;
-  $('#bfBody').innerHTML = id ? `<div class="bfwrap"><iframe src="https://docs.google.com/spreadsheets/d/${id}/htmlview?rm=minimal&widget=true&headers=false" title="早餐試算表" loading="lazy"></iframe></div>
-    <p class="muted small">這裡只能看。要填寫或修改，按上面「打開試算表填寫」。看不到內容的話，試算表要設成「知道連結的任何人都能檢視」。</p>`
-    : `<p class="empty">還沒設定早餐試算表。${S.admin ? '按右上「設定試算表」貼上網址。' : '請管理員設定。'}</p>`;
-  const b = $('#bfSet');
-  if (b) b.onclick = () => {
-    $('#sheetBody').innerHTML = `<h3 class="t">早餐試算表</h3><div class="sub">${esc(PROPS[S.prop])}。貼上 Google 試算表網址。</div>
-      <input type="text" id="bfUrl" value="${esc(d.url || '')}" placeholder="https://docs.google.com/spreadsheets/d/…">
-      <div class="btnrow"><button class="btn ghost" id="bfClose">取消</button><button class="btn wide" id="bfSave">儲存</button></div>`;
-    $('#bfClose').onclick = closeSheet;
-    $('#bfSave').onclick = async () => {
-      const url = $('#bfUrl').value.trim();
-      if (url && !sheetId(url)) return toast('這不是 Google 試算表網址', false, true);
-      const all = { ...(S.docs.breakfast || {}) }; all[S.prop] = { url };
-      delete all.updatedAt;
-      if (await saveDoc('breakfast', all)) { closeSheet(); renderBf(); }
-    };
-    openSheet();
-  };
+const sheetUrl = () => ((S.docs.breakfast || {})[S.prop] || {}).url || '';
+const curSheetId = () => sheetId(sheetUrl()) || DEFAULT_SHEET[S.prop] || '';
+S.sheet = {};
+async function loadSheet(tab, fresh) {
+  const k = S.prop + '|' + curSheetId() + '|' + tab, c = S.sheet[k];
+  if (c && !fresh && Date.now() - c.got < 120e3) return c;
+  const j = await api(`sheet?p=${S.prop}&tab=${encodeURIComponent(tab)}${fresh ? '&fresh=1' : ''}`);
+  return (S.sheet[k] = { ...j, got: Date.now() });
 }
+const normDate = (v) => { const m = String(v || '').match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/); return m ? `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` : ''; };
+// 依標題找欄位（換表、欄位順序變了也讀得到）
+function cols(head, defs) {
+  const used = new Set(), out = {};
+  for (const [k, re, many] of defs) {
+    const idx = head.map((h, i) => (!used.has(i) && re.test(h) ? i : -1)).filter((i) => i >= 0);
+    (many ? idx : idx.slice(0, 1)).forEach((i) => used.add(i));
+    out[k] = many ? idx : idx[0];
+  }
+  return out;
+}
+const cell = (r, i) => (i == null ? '' : String(r[i] ?? '').trim());
+const isPh = (t) => /^[（(].*[)）]$/.test(t);  // (沒回覆)、(未給) 這種
+function sheetMeta(el, id, tab) {
+  $(el).innerHTML = `${id ? `<a class="btn" href="https://docs.google.com/spreadsheets/d/${id}/edit" target="_blank" rel="noopener" style="text-decoration:none">打開試算表填寫</a>` : ''}
+    <button class="btn ghost" data-sheetfresh="${tab}">重新整理</button>
+    ${S.admin ? `<button class="btn ghost" data-sheetset style="margin-left:auto">換試算表</button>` : ''}`;
+}
+document.addEventListener('click', (e) => {
+  const f = e.target.closest('[data-sheetfresh]');
+  if (f) { loadSheet(f.dataset.sheetfresh, true).then(() => renderAll(), (er) => toast(er.message, false, true)); return; }
+  if (e.target.closest('[data-sheetset]')) openSheetSet();
+});
+function openSheetSet() {
+  $('#sheetBody').innerHTML = `<h3 class="t">評論／早餐試算表</h3><div class="sub">${esc(PROPS[S.prop])}。貼上 Google 試算表網址（要有「評論」和「早餐」分頁，並設成知道連結的任何人都能檢視）。留空＝用預設的表。</div>
+    <input type="text" id="bfUrl" value="${esc(sheetUrl())}" placeholder="https://docs.google.com/spreadsheets/d/…">
+    <div class="btnrow"><button class="btn ghost" id="bfClose">取消</button><button class="btn wide" id="bfSave">儲存</button></div>`;
+  $('#bfClose').onclick = closeSheet;
+  $('#bfSave').onclick = async () => {
+    const url = $('#bfUrl').value.trim();
+    if (url && !sheetId(url)) return toast('這不是 Google 試算表網址', false, true);
+    const all = { ...(S.docs.breakfast || {}) }; all[S.prop] = { url };
+    delete all.updatedAt;
+    if (await saveDoc('breakfast', all)) { closeSheet(); renderAll(); }
+  };
+  openSheet();
+}
+
+// ---- 早餐 ----
+function parseBf(rows) {
+  const head = rows[0] || [];
+  const C = cols(head, [['date', /日期/], ['room', /房/], ['guest', /住客|暱稱|姓名/], ['meal', /餐點/, true], ['drink', /飲料/, true], ['slot', /時段|時間/], ['note', /備註/]]);
+  const out = [];
+  for (const r of rows.slice(1)) {
+    const date = normDate(cell(r, C.date));
+    if (!date || /^【/.test(cell(r, C.date))) continue;
+    const portions = [];
+    const n = Math.max(C.meal.length, C.drink.length);
+    for (let i = 0; i < n; i++) {
+      const meal = cell(r, C.meal[i]), drink = cell(r, C.drink[i]);
+      if (meal || drink) portions.push({ meal: isPh(meal) ? '' : meal, drink: isPh(drink) ? '' : drink, rawMeal: meal, rawDrink: drink });
+    }
+    const first = cell(r, C.meal[0]);
+    const slot = cell(r, C.slot), note = cell(r, C.note);
+    const status = /不用早餐|不吃/.test(first) ? 'none' : portions.some((x) => x.meal && !/不用早餐/.test(x.meal)) ? 'ok' : 'ask';
+    const grp = /^A/i.test(slot) ? 'A' : /^B/i.test(slot) ? 'B' : /外帶/.test(slot) ? '外帶' : '';
+    const tm = (slot.match(/\d{1,2}:\d{2}/) || [''])[0];
+    const all = [first, ...portions.map((x) => x.rawMeal + ' ' + x.rawDrink), note].join(' ');
+    out.push({ date, room: cell(r, C.room), guest: cell(r, C.guest), portions: status === 'ok' ? portions : [], slot, grp, tm, note, status, askText: status === 'ask' ? first.replace(/^[（(]|[)）]$/g, '') || '沒點餐' : '',
+      soldout: /售完/.test(all), bday: /壽星/.test(all), unsure: /不確定|或/.test(slot) });
+  }
+  return out;
+}
+const plus = (t) => [...String(t).matchAll(/\+\s*(\d+)/g)].reduce((a, m) => a + +m[1], 0);
+const baseName = (t) => String(t).replace(/\s*\+\s*\d+/g, '').trim();
+function bfStats(list) {
+  const meals = {}, drinks = {}; let n = 0, up = 0, upN = 0;
+  for (const o of list) for (const x of o.portions) {
+    if (x.meal) { n++; const k = baseName(x.meal); meals[k] = (meals[k] || 0) + 1; }
+    if (x.drink) { const k = baseName(x.drink); drinks[k] = (drinks[k] || 0) + 1; }
+    for (const t of [x.meal, x.drink]) { const v = plus(t); if (v) { up += v; upN++; } }
+  }
+  const g = { A: 0, B: 0, '外帶': 0 };
+  for (const o of list) if (o.grp in g) g[o.grp] += o.portions.filter((x) => x.meal).length;
+  return { n, meals, drinks, up, upN, g, none: list.filter((o) => o.status === 'none'), ask: list.filter((o) => o.status === 'ask') };
+}
+const sortT = (o) => o.sort((a, b) => (a.tm || '99').padStart(5, '0').localeCompare((b.tm || '99').padStart(5, '0')) || a.room.localeCompare(b.room));
+async function renderBf() {
+  let J;
+  sheetMeta('#bfMeta', curSheetId(), '早餐');
+  if (!S.sheet[S.prop + '|' + curSheetId() + '|早餐']) $('#bfBody').innerHTML = '<p class="empty">讀取中⋯</p>';
+  try { J = await loadSheet('早餐'); } catch (e) { $('#bfBody').innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
+  if (S.tab !== 'bf') return;
+  sheetMeta('#bfMeta', J.id, '早餐');
+  const all = parseBf(J.rows || []);
+  const dates = [...new Set(all.map((o) => o.date))].sort();
+  if (!dates.length) { $('#bfBody').innerHTML = '<p class="empty">試算表的「早餐」分頁還沒有資料。</p>'; return; }
+  const t = todayStr();
+  if (!S.bfDate || !dates.includes(S.bfDate)) S.bfDate = dates.includes(t) ? t : dates.find((d) => d > t) || dates[dates.length - 1];
+  const list = all.filter((o) => o.date === S.bfDate);
+  const st = bfStats(list);
+  const row = (o) => `<div class="bfr"><span class="no">${esc(o.room)}</span><span class="bd">
+      ${o.portions.map((x, i) => `<div class="it">${o.portions.length > 1 ? `<i>${i + 1}</i>` : ''}<span>${esc(x.meal || '（只點飲料）')}</span>${x.drink || x.rawDrink ? `<i>＋</i><span>${esc(x.drink || x.rawDrink)}</span>` : ''}</div>`).join('')}
+      <div class="nt">${esc(o.guest)}${o.soldout ? ' <span class="bdg red">需改餐</span>' : ''}${o.bday ? ' <span class="bdg blue">壽星</span>' : ''}${o.unsure ? ` <span class="bdg red">${esc(o.slot)}</span>` : o.slot.length > 6 ? ` <span class="bdg">${esc(o.slot)}</span>` : ''}${o.note ? '　' + esc(o.note) : ''}</div>
+    </span><span class="tm">${esc(o.grp === '外帶' ? o.tm || '外帶' : o.unsure || o.slot.length > 6 || o.slot === o.grp ? '' : o.slot)}</span></div>`;
+  const ok = list.filter((o) => o.status === 'ok');
+  const groups = [['A', 'A 時段'], ['B', 'B 時段'], ['外帶', '外帶'], ['', '時段未填']].map(([g, name]) => [name, sortT(ok.filter((o) => o.grp === g))]).filter(([, l]) => l.length);
+  const sortE = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]);
+  const i = dates.indexOf(S.bfDate);
+  $('#bfBody').innerHTML = `
+    <div class="rpt-nav"><button class="arrow" id="bfPrev" ${i <= 0 ? 'disabled' : ''} aria-label="前一天">‹</button><span class="mo">${mdShort(S.bfDate)}（${'日一二三四五六'[new Date(S.bfDate + 'T00:00:00Z').getUTCDay()]}）${S.bfDate === t ? ' 今天' : ''}</span><button class="arrow" id="bfNext" ${i >= dates.length - 1 ? 'disabled' : ''} aria-label="後一天">›</button></div>
+    <div class="stats">
+      <div class="stat"><b>${st.n}</b><span>份早餐</span></div>
+      ${Object.entries(st.g).map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k === '外帶' ? '外帶' : k + ' 時段'}（份）</span></div>`).join('')}
+      <div class="stat"><b style="${st.ask.length ? 'color:var(--prio)' : ''}">${st.ask.length}</b><span>待確認（間）</span></div>
+    </div>
+    ${st.ask.length ? `<div class="bfg"><div class="hd" style="color:var(--prio)">待確認　<span>沒回覆、沒點，要追問</span></div>${st.ask.map((o) => `<div class="bfr"><span class="no">${esc(o.room)}</span><span class="bd">${esc(o.askText)}<div class="nt">${esc(o.guest)}${o.note ? '　' + esc(o.note) : ''}</div></span></div>`).join('')}</div>` : ''}
+    ${groups.map(([name, l]) => `<div class="bfg"><div class="hd">${name}　<b>${l.reduce((a, o) => a + o.portions.filter((x) => x.meal).length, 0)}</b><span>份・${l.length} 間</span></div>${l.map(row).join('')}</div>`).join('')}
+    ${st.none.length ? `<p class="muted small">不用早餐：${st.none.map((o) => esc(o.room)).join('、')}</p>` : ''}
+    <h2>備料統計</h2>
+    <div class="tally">${sortE(st.meals).map(([k, v]) => `<span>${esc(k)}${/售完/.test(k) ? ' <span class="bdg red">需改餐</span>' : ''}</span><b>${v}</b>`).join('')}</div>
+    <h2>飲料</h2>
+    <div class="tally">${sortE(st.drinks).map(([k, v]) => `<span>${esc(k)}</span><b>${v}</b>`).join('')}</div>
+    ${st.upN ? `<p class="muted small">加價品 ${st.upN} 項，共 +${st.up} 元</p>` : ''}
+    <p class="muted small">資料來自試算表，約 2 分鐘更新一次；要改內容請按上方「打開試算表填寫」。</p>`;
+  $('#bfPrev').onclick = () => { S.bfDate = dates[i - 1]; renderBf(); };
+  $('#bfNext').onclick = () => { S.bfDate = dates[i + 1]; renderBf(); };
+}
+// 清理頁上方：今天早餐摘要
+async function bfMini() {
+  const el = $('#bfMini'); if (!el) return;
+  try {
+    const J = await loadSheet('早餐');
+    const list = parseBf(J.rows || []).filter((o) => o.date === todayStr());
+    if (!list.length || S.logCat !== '清理' || S.prop !== 'erlu') return;
+    const st = bfStats(list);
+    $('#bfMini').innerHTML = `<button class="bfmini" data-gotab="bf">🍳 今日早餐 <b>${st.n}</b> 份<span class="muted small">A ${st.g.A}・B ${st.g.B}・外帶 ${st.g['外帶']}${st.ask.length ? `・<span style="color:var(--prio)">待確認 ${st.ask.length} 間</span>` : ''}</span></button>`;
+  } catch {}
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-gotab]'); if (b) goTab(b.dataset.gotab); });
+
+// 報表裡的評論統計
+async function revReport(from, to) {
+  try {
+    const J = await loadSheet('評論');
+    const el = $('#rptRev'); if (!el) return;
+    const P = parseRev(J.rows || []).filter((x) => x.date >= from && x.date <= to);
+    if (!P.length) { el.innerHTML = '<h2>評論</h2><p class="muted small">這段期間沒有評論。</p>'; return; }
+    const srcs = [...new Set(P.map((x) => x.src))];
+    const n = (l) => P.filter((x) => x.lvl === l).length;
+    const good = Math.round(n('好評') / P.length * 100);
+    const tags = {}; for (const x of P) for (const g of x.tags) tags[g] = (tags[g] || 0) + 1;
+    const tagE = Object.entries(tags).sort((a, b) => b[1] - a[1]); const tmax = Math.max(1, ...tagE.map((x) => x[1]));
+    el.innerHTML = `<h2>評論</h2>
+      <div class="pie">${donut(good, 160, 18, `<text x="80" y="86" text-anchor="middle" class="pv" style="font-size:40px">${good}<tspan class="pp">%</tspan></text><text x="80" y="110" text-anchor="middle" class="pl" style="font-size:12px">好評</text>`)}
+        <div class="pside"><div><b>${P.length}</b><span>則評論</span></div>${srcs.map((s) => { const a = avg(P.filter((x) => x.src === s && x.v != null).map((x) => x.v)); const mx = (P.find((x) => x.src === s) || {}).max; return `<div><b>${a == null ? '—' : a.toFixed(1)}<small style="font-size:14px;color:var(--mute)">/${mx}</small></b><span>${esc(s)} 平均</span></div>`; }).join('')}
+        <div><b style="color:var(--prio)">${n('負評')}</b><span>負評（普通 ${n('普通')}）</span></div></div></div>
+      ${tagE.length ? `<h2>被提到的問題</h2><div class="list">${tagE.map(([g, c]) => `<div class="rbar"><span style="width:96px;font-size:14px">${esc(g)}</span><span class="track"><i style="width:${c / tmax * 100}%"></i></span><b>${c}</b></div>`).join('')}</div>` : ''}`;
+  } catch {}
+}
+// ---- 評論 ----
+function parseRev(rows) {
+  const head = rows[0] || [];
+  const C = cols(head, [['date', /日期/], ['src', /來源/], ['lvl', /優劣|好評|負評/], ['tags', /內容/, true], ['desc', /說明/], ['score', /分數/], ['note', /備註/]]);
+  return rows.slice(1).map((r) => {
+    const src = cell(r, C.src), sc = cell(r, C.score), lv = cell(r, C.lvl);
+    const m = sc.match(/([\d.]+)\s*分?(?:.*?滿分\s*(\d+))?/);
+    const v = m ? +m[1] : null, max = m && m[2] ? +m[2] : /google/i.test(src) ? 5 : 10;
+    const lvl = /負/.test(lv) ? '負評' : /普通/.test(lv) ? '普通' : /好/.test(lv) ? '好評' : lv;
+    return { date: normDate(cell(r, C.date)), src, lvl, tags: C.tags.map((i) => cell(r, i)).filter(Boolean), desc: cell(r, C.desc), v, max, pct: v != null ? v / max * 100 : null, note: cell(r, C.note) };
+  }).filter((x) => x.date);
+}
+S.rev = { per: '30', src: '', lvl: '', tag: '' };
+const avg = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null);
+async function renderRev() {
+  let J;
+  sheetMeta('#revMeta', curSheetId(), '評論');
+  if (!S.sheet[S.prop + '|' + curSheetId() + '|評論']) $('#revBody').innerHTML = '<p class="empty">讀取中⋯</p>';
+  try { J = await loadSheet('評論'); } catch (e) { $('#revBody').innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
+  if (S.tab !== 'rev') return;
+  sheetMeta('#revMeta', J.id, '評論');
+  const all = parseRev(J.rows || []).sort((a, b) => b.date.localeCompare(a.date));
+  const F = S.rev, t = todayStr();
+  const inPer = (x) => F.per === 'all' ? true : F.per === '30' ? x.date >= addDays(t, -30) : F.per === 'm' ? x.date.slice(0, 7) === t.slice(0, 7) : x.date.slice(0, 7) === addDays(t.slice(0, 7) + '-01', -1).slice(0, 7);
+  const P = all.filter(inPer);
+  const srcs = [...new Set(all.map((x) => x.src).filter(Boolean))];
+  const tags = {}; for (const x of P) for (const g of x.tags) tags[g] = (tags[g] || 0) + 1;
+  const list = P.filter((x) => (!F.src || x.src === F.src) && (!F.lvl || x.lvl === F.lvl) && (!F.tag || x.tags.includes(F.tag)));
+  const chip = (k, v, label) => `<button class="chip" data-rv="${k}" data-v="${esc(v)}" aria-pressed="${F[k] === v}">${esc(label)}</button>`;
+  const cnt = (l) => P.filter((x) => x.lvl === l).length;
+  const tagE = Object.entries(tags).sort((a, b) => b[1] - a[1]); const tmax = Math.max(1, ...tagE.map((x) => x[1]));
+  $('#revBody').innerHTML = `
+    <div class="chips" style="margin-bottom:12px">${[['30', '近 30 天'], ['m', '本月'], ['pm', '上個月'], ['all', '全部']].map(([v, l]) => chip('per', v, l)).join('')}</div>
+    <div class="stats">
+      <div class="stat"><b>${P.length}</b><span>則評論</span></div>
+      ${srcs.map((s) => { const a = avg(P.filter((x) => x.src === s && x.v != null).map((x) => x.v)); const mx = (P.find((x) => x.src === s) || {}).max || (/google/i.test(s) ? 5 : 10); return `<div class="stat"><b>${a == null ? '—' : a.toFixed(1)}</b><span>${esc(s)} 平均（滿分 ${mx}）</span></div>`; }).join('')}
+      <div class="stat"><b style="${cnt('負評') ? 'color:var(--prio)' : ''}">${cnt('負評')}</b><span>負評</span></div>
+    </div>
+    <div class="legend" style="margin-top:-4px"><span>好評 ${cnt('好評')}</span><span>普通 ${cnt('普通')}</span><span style="color:var(--prio)">負評 ${cnt('負評')}</span></div>
+    ${tagE.length ? `<h2>被提到的問題</h2><div class="list">${tagE.map(([g, n]) => `<button class="rbar" data-rv="tag" data-v="${esc(F.tag === g ? '' : g)}" style="width:100%;background:none;border-left:0;border-right:0;border-bottom:0;${F.tag === g ? 'color:var(--gold2)' : ''}"><span style="width:96px;text-align:left;font-size:14px">${esc(g)}</span><span class="track"><i style="width:${n / tmax * 100}%"></i></span><b>${n}</b></button>`).join('')}</div>` : ''}
+    <h2>評論</h2>
+    <div class="chips" style="margin-bottom:6px">${chip('src', '', '全部來源')}${srcs.map((s) => chip('src', s, s)).join('')}</div>
+    <div class="chips" style="margin-bottom:12px">${chip('lvl', '', '全部')}${['好評', '普通', '負評'].map((l) => chip('lvl', l, l)).join('')}${F.tag ? chip('tag', '', '✕ ' + F.tag) : ''}</div>
+    ${list.length ? list.map((x) => `<div class="rvi${x.lvl === '負評' ? ' neg' : ''}"><div class="tp">
+        <span class="bdg ${x.lvl === '負評' ? 'red' : x.lvl === '普通' ? 'dim' : ''}">${esc(x.lvl)}</span><span class="bdg dim">${esc(x.src)}</span>
+        ${x.v != null ? `<span class="sc">${x.v}<small>/${x.max}</small></span>` : ''}${x.tags.map((g) => `<span class="bdg">${esc(g)}</span>`).join('')}<span class="dt">${mdShort(x.date)}</span></div>
+        <p class="tx${/^（.*）$/.test(x.desc) ? ' dim' : ''}">${esc(x.desc || '（無文字評論）')}</p>${x.note ? `<div class="nt">${esc(x.note)}</div>` : ''}</div>`).join('') : '<p class="empty">這段期間沒有符合的評論。</p>'}
+    <p class="muted small">資料來自試算表「評論」分頁，約 2 分鐘更新一次。</p>`;
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-rv]'); if (!b) return; S.rev[b.dataset.rv] = b.dataset.v; renderRev(); });
 
 // ---------- LINE 設定（管理員）----------
 async function renderLine() {
@@ -1255,7 +1473,7 @@ $('#rptNext').onclick = () => shiftMonth(1);
 $('#nextDay').onclick = () => shiftDate(1);
 $('#goToday').onclick = () => { S.date = todayStr(); refresh(); };
 async function shiftDate(n) { S.date = addDays(S.date, n); refresh(); }
-// 貳侶只有：清理、故障、早餐、報表；其他館：今日、紀錄、手冊、報表
+// 貳侶只有：清理、故障、早餐、評論、報表；其他館：今日、手冊、報表
 function tabsFor(p) { return [...document.querySelectorAll('nav.tabs button')].filter((b) => !b.dataset.for || b.dataset.for === (p === 'erlu' ? 'erlu' : 'std')).map((b) => b.dataset.tab); }
 function goTab(t) {
   const ok = tabsFor(S.prop);
@@ -1288,6 +1506,7 @@ function renderAll() {
   if (S.tab === 'today') { renderTools(); renderToday(); }
   if (S.tab === 'log' || S.tab === 'clean' || S.tab === 'fault') renderLogs();
   if (S.tab === 'bf') renderBf();
+  if (S.tab === 'rev') renderRev();
   if (S.tab === 'book') renderBook();
   if (S.tab === 'rooms') renderRooms();
 }

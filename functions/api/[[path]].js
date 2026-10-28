@@ -6,6 +6,22 @@
 const PROPS = ['ersu', 'eryanglou', 'erlu'];
 const PNAME = { ersu: '貳宿', eryanglou: '貳洋樓', erlu: '貳侶' };
 const DOC_KEYS = ['handbook', 'stay', 'checkout', 'checklist', 'supplies', 'roominfo', 'breakfast'];
+// 貳侶 評論／早餐 預設試算表（管理員可在早餐分頁「換試算表」）
+const DEFAULT_SHEET = { erlu: '1RxePc9dAOgI3OCnUaRsKCtBgLyTImYA-dCg0d1m_BBc' };
+const SHEET_CACHE = new Map();
+function parseCsv(t) {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return rows.filter((r) => r.some((x) => x.trim()));
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ROOM_RE = /^[0-9A-Za-z\-]{1,8}$/;
 
@@ -229,6 +245,26 @@ export async function onRequest(ctx) {
           .bind(b.k, s, Date.now()).run();
         return json({ ok: true });
       }
+    }
+
+    // ---- 讀 Google 試算表的分頁（評論、早餐）----
+    // GET /api/sheet?p=erlu&tab=評論  試算表網址在「早餐」設定裡（docs.breakfast[p].url），可隨時換表
+    if (path === 'sheet' && m === 'GET') {
+      if (!PROPS.includes(p)) return bad('館別錯誤');
+      const tab = (url.searchParams.get('tab') || '').slice(0, 40);
+      if (!tab) return bad('缺少分頁名稱');
+      const row = await env.DB.prepare("SELECT data FROM docs WHERE k='breakfast'").first();
+      let u = ''; try { u = (JSON.parse(row ? row.data : '{}')[p] || {}).url || ''; } catch {}
+      const id = (String(u).match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/) || [])[1] || DEFAULT_SHEET[p] || '';
+      if (!id) return json({ id: '', rows: [] });
+      const ck = id + '|' + tab, hit = SHEET_CACHE.get(ck);
+      if (hit && Date.now() - hit.at < 120e3 && !url.searchParams.get('fresh')) return json(hit);
+      const r = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`, { headers: { 'user-agent': 'E-ROOM' } });
+      const t = await r.text();
+      if (!r.ok || /^\s*<(!doctype|html)/i.test(t)) return bad('讀不到試算表：請確認已設成「知道連結的任何人都能檢視」，且有「' + tab + '」分頁', 502);
+      const out = { id, tab, at: Date.now(), rows: parseCsv(t) };
+      SHEET_CACHE.set(ck, out);
+      return json(out);
     }
 
     // ---- 純文字寫入（給 Grok 用網址登記房況）----
