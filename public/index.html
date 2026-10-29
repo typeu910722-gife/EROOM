@@ -964,34 +964,44 @@ async function renderLogReport() {
     try { R = S.reports[key] = await api(`logs/report?p=${S.prop}&from=${from}&to=${to}`); } catch (e) { $('#rptBody').innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
     if (S.tab !== 'rooms' || S.roomView !== 'report') return;
   }
-  const rooms = S.rooms[S.prop] || [];
-  const nC = R.tot['清理'] || 0, nF = R.tot['故障'] || 0;
-  const cleaned = rooms.filter((r) => (R.rooms[r] || {})['清理']).length;
-  const pct = rooms.length ? Math.round(cleaned / rooms.length * 100) : 0;
+  if (!S.deep || S.deep.prop !== S.prop) { try { await loadDeep(); } catch { S.deep = { prop: S.prop, tasks: [], logs: [], rooms: [] }; } if (S.tab !== 'rooms' || S.roomView !== 'report') return; }
+  const D = S.deep, rooms = S.rooms[S.prop] || D.rooms || [];
+  if (!D.tasks.find((t) => t.id === S.rptDeep)) S.rptDeep = D.tasks[0] ? D.tasks[0].id : 0;
+  const tk = D.tasks.find((t) => t.id === S.rptDeep);
+  const st = tk ? tk.rooms : {};
+  const done = rooms.filter((r) => st[r] && ['ok', 'soon'].includes(st[r].state)).length;
+  const pct = rooms.length ? Math.round(done / rooms.length * 100) : 0;
+  const DL = D.logs.filter((l) => l.task_id === S.rptDeep && l.status !== 'redo' && l.date >= from && l.date <= to);
+  const nD = DL.length, nF = R.tot['故障'] || 0;
+  const dCount = (k) => DL.filter((l) => l.date.startsWith(k)).length;
   let series, lab;
   if (T === 'm') {
     const [y, m] = S.month.split('-'); const days = new Date(Date.UTC(+y, +m, 0)).getUTCDate();
-    series = [...Array(days)].map((_, i) => R.daily[S.month + '-' + String(i + 1).padStart(2, '0')] || {});
+    series = [...Array(days)].map((_, i) => { const k = S.month + '-' + String(i + 1).padStart(2, '0'); return { d: dCount(k), f: (R.daily[k] || {})['故障'] || 0 }; });
     lab = (i) => ((i + 1) % 5 === 0 || i === 0 ? String(i + 1) : '');
-  } else { series = months.map((mm) => R.monthly[S.rptYear + '-' + String(mm).padStart(2, '0')] || {}); lab = (i) => months[i] + '月'; }
-  const max = Math.max(1, ...series.map((x) => Math.max(x['清理'] || 0, x['故障'] || 0)));
+  } else { series = months.map((mm) => { const k = S.rptYear + '-' + String(mm).padStart(2, '0'); return { d: dCount(k), f: (R.monthly[k] || {})['故障'] || 0 }; }); lab = (i) => months[i] + '月'; }
+  const max = Math.max(1, ...series.map((x) => Math.max(x.d, x.f)));
+  const STN = { over: '該做了', due: '還沒做過', soon: '快到期', ok: '已完成' };
   $('#rptBody').innerHTML = `
+    ${D.tasks.length > 1 ? `<div class="chips" style="justify-content:center;margin-bottom:8px">${D.tasks.map((t) => `<button class="chip" data-rdeep="${t.id}" aria-pressed="${t.id === S.rptDeep}">${esc(t.name)}</button>`).join('')}</div>` : ''}
     <div class="pie">
-      ${donut(pct, 200, 22, `<text x="100" y="104" text-anchor="middle" class="pv">${pct}<tspan class="pp">%</tspan></text><text x="100" y="134" text-anchor="middle" class="pl">清理涵蓋</text>`)}
+      ${donut(pct, 200, 22, `<text x="100" y="104" text-anchor="middle" class="pv">${pct}<tspan class="pp">%</tspan></text><text x="100" y="134" text-anchor="middle" class="pl">細清完成率</text>`)}
       <div class="pside">
-        <div><b>${nC}</b><span>清理（筆）</span></div>
+        <div><b>${done}<small style="font-size:16px;color:var(--mute)">/${rooms.length}</small></b><span>${esc(tk ? tk.name : '細清')}（目前在期限內）</span></div>
+        <div><b>${nD}</b><span>這段期間細清（間次）</span></div>
         <div><b style="color:var(--prio)">${nF}</b><span>故障（筆）</span></div>
-        <div><b>${cleaned}<small style="font-size:16px;color:var(--mute)">/${rooms.length}</small></b><span>有清理的房間</span></div>
       </div>
     </div>
     <h2>${T === 'm' ? '每天' : '每月'}紀錄</h2>
-    <div class="bars duo2${T === 'm' ? '' : ' wide'}" role="img" aria-label="清理與故障筆數">${series.map((x, i) => `<div class="b" title="${T === 'm' ? (i + 1) + '日' : months[i] + '月'}：清理 ${x['清理'] || 0}、故障 ${x['故障'] || 0}">
-      <span class="pair"><i style="height:${(x['清理'] || 0) / max * 100}%"></i><i class="f" style="height:${(x['故障'] || 0) / max * 100}%"></i></span>${lab(i) ? `<em>${lab(i)}</em>` : ''}</div>`).join('')}</div>
-    <div class="legend"><span><i class="dot" style="background:var(--gold)"></i>清理</span><span><i class="dot" style="background:var(--prio)"></i>故障</span></div>
+    <div class="bars duo2${T === 'm' ? '' : ' wide'}" role="img" aria-label="細清與故障筆數">${series.map((x, i) => `<div class="b" title="${T === 'm' ? (i + 1) + '日' : months[i] + '月'}：細清 ${x.d}、故障 ${x.f}">
+      <span class="pair"><i style="height:${x.d / max * 100}%"></i><i class="f" style="height:${x.f / max * 100}%"></i></span>${lab(i) ? `<em>${lab(i)}</em>` : ''}</div>`).join('')}</div>
+    <div class="legend"><span><i class="dot" style="background:var(--gold)"></i>細清</span><span><i class="dot" style="background:var(--prio)"></i>故障</span></div>
     <h2>各房間</h2>
-    <div class="tablewrap"><table class="rtable"><thead><tr><th>房號</th><th>清理</th><th>故障</th><th>最後清理</th></tr></thead><tbody>
-      ${rooms.map((r) => { const x = R.rooms[r] || {}; return `<tr><td>${esc(r)}</td><td>${x['清理'] || 0}</td><td style="${x['故障'] ? 'color:var(--prio)' : ''}">${x['故障'] || 0}</td><td>${x['last_清理'] ? mdShort(x['last_清理']) : '—'}</td></tr>`; }).join('')}
+    <div class="tablewrap"><table class="rtable"><thead><tr><th>房號</th><th>上次細清</th><th>到期</th><th>狀態</th><th>故障</th></tr></thead><tbody>
+      ${rooms.map((r) => { const x = R.rooms[r] || {}, d = st[r] || {}; const bad = d.state === 'over' || d.state === 'due';
+        return `<tr><td>${esc(r)}</td><td>${d.last ? mdShort(d.last) : '—'}</td><td>${d.due ? mdShort(d.due) : '—'}</td><td style="${bad ? 'color:var(--prio)' : d.state === 'soon' ? 'color:var(--gold)' : ''}">${d.redo ? '需重做' : STN[d.state] || '—'}</td><td style="${x['故障'] ? 'color:var(--prio)' : ''}">${x['故障'] || 0}</td></tr>`; }).join('')}
     </tbody></table></div><div id="rptRev"></div>`;
+  $('#rptBody').querySelectorAll('[data-rdeep]').forEach((b) => (b.onclick = () => { S.rptDeep = +b.dataset.rdeep; renderLogReport(); }));
   revReport(from, to);
 }
 async function renderReport() {

@@ -729,7 +729,7 @@ async function line(sub, m, request, env, url, ctx) {
       } else if (/綁定/.test(text)) {
         const p = /洋樓/.test(text) ? 'eryanglou' : /貳宿|二宿/.test(text) ? 'ersu' : /貳旅|二旅|貳侶|二侶/.test(text) ? 'erlu' : null;
         if (!p) msg = '請傳「綁定貳宿」「綁定貳洋樓」或「綁定貳旅」。';
-        else { await setS(env, 'line_target_' + p, gid); const lines = [`已綁定【${PROP_NAME[p]}】。`]; if (await pushOn(env, p)) lines.push('每天 10:50 會傳今日要掃的房間。'); if (await autologOn(env, p)) lines.push('群組裡回報冷氣清洗、維修、房況（要寫房號），會自動登記到 E·ROOM 紀錄。例如：「冷氣清洗 201 202」「203 馬桶修好了」。'); msg = lines.join('\n'); }
+        else { await setS(env, 'line_target_' + p, gid); const lines = [`已綁定【${PROP_NAME[p]}】。`]; if (await pushOn(env, p)) lines.push('每天 10:50 會傳今日要掃的房間。'); if (p === 'erlu' || p === 'ersu') lines.push('細清快到期時，每天 10:50 會在這裡提醒要做的房間。'); if (await autologOn(env, p)) lines.push('群組裡回報故障（要寫房號）會自動登記到 E·ROOM。例如：「203 馬桶修好了」。'); msg = lines.join('\n'); }
       }
       if (token && ev.replyToken) {
         try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: msg }] }) }); } catch {}
