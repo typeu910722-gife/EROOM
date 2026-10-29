@@ -400,6 +400,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <button data-tab="today" data-for="std" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>今日</button>
   <button data-tab="log" data-for="none" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/></svg>紀錄</button>
   <button data-tab="deep" data-for="std" data-only="ersu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 21l4-9M9 12l6 3M15 15l3-12"/><path d="M4 21h9"/><circle cx="18" cy="5" r="0.5"/><path d="M19 9l2-1M20 12h2"/></svg>細清</button>
+  <button data-tab="rev" data-for="std" data-only="ersu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>評論</button>
   <button data-tab="book" data-for="std"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
   <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>報表</button>
 </nav>
@@ -1060,6 +1061,11 @@ async function renderReport() {
       ${T === 'm' ? '' : `<span class="v">${x || ''}</span>`}<i style="height:${x / max * 100}%"></i>${lab(i) ? `<em>${lab(i)}</em>` : ''}</div>`).join('')}</div>
     <h2>各房間入住率</h2>
     <div class="pies">${rooms.map((r) => { const x = P.rooms[r]; const pr = pct(x.occ, t.days, 1); return `<div class="pi">${donut(pr, 76, 8, `<text x="38" y="43" text-anchor="middle" class="pvs">${pr}%</text>`)}<b>${esc(r)}</b><span>入住 ${x.checkin} 次</span></div>`; }).join('')}</div>`;
+  if (S.prop === 'ersu') {
+    const [f2, t2] = T === 'm' ? [S.month + '-01', S.month + '-31'] : T === 'y' ? [S.rptYear + '-01-01', S.rptYear + '-12-31'] : S.rptHalf === 1 ? [S.rptYear + '-01-01', S.rptYear + '-06-30'] : [S.rptYear + '-07-01', S.rptYear + '-12-31'];
+    $('#rptBody').insertAdjacentHTML('beforeend', '<div id="rptRev"></div>');
+    revReport(f2, t2);
+  }
 }
 
 // ---------- 紀錄（冷氣清洗、維修、房況；大家都能新增編輯刪除）----------
@@ -1190,7 +1196,7 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-sheetset]')) openSheetSet();
 });
 function openSheetSet() {
-  $('#sheetBody').innerHTML = `<h3 class="t">評論／早餐試算表</h3><div class="sub">${esc(PROPS[S.prop])}。貼上 Google 試算表網址（要有「評論」和「早餐」分頁，並設成知道連結的任何人都能檢視）。留空＝用預設的表。</div>
+  $('#sheetBody').innerHTML = `<h3 class="t">${S.prop === 'erlu' ? '評論／早餐' : '評論'}試算表</h3><div class="sub">${esc(PROPS[S.prop])}。貼上 Google 試算表網址（要有「評論」${S.prop === 'erlu' ? '和「早餐」' : ''}分頁，並設成知道連結的任何人都能檢視）。${DEFAULT_SHEET[S.prop] ? '留空＝用預設的表。' : ''}</div>
     <input type="text" id="bfUrl" value="${esc(sheetUrl())}" placeholder="https://docs.google.com/spreadsheets/d/…">
     <div class="btnrow"><button class="btn ghost" id="bfClose">取消</button><button class="btn wide" id="bfSave">儲存</button></div>`;
   $('#bfClose').onclick = closeSheet;
@@ -1302,6 +1308,7 @@ async function revReport(from, to) {
   try {
     const J = await loadSheet('評論');
     const el = $('#rptRev'); if (!el) return;
+    if (!J.id) return;
     const P = parseRev(J.rows || []).filter((x) => x.date >= from && x.date <= to);
     if (!P.length) { el.innerHTML = '<h2>評論</h2><p class="muted small">這段期間沒有評論。</p>'; return; }
     const srcs = [...new Set(P.map((x) => x.src))];
@@ -1489,6 +1496,7 @@ async function renderRev() {
   try { J = await loadSheet('評論'); } catch (e) { $('#revBody').innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
   if (S.tab !== 'rev') return;
   sheetMeta('#revMeta', J.id, '評論');
+  if (!J.id) { $('#revBody').innerHTML = `<p class="empty">${esc(PROPS[S.prop])}還沒設定評論試算表。${S.admin ? '按右上「換試算表」貼上網址（要有「評論」分頁）。' : '請管理員設定。'}</p>`; return; }
   const all = parseRev(J.rows || []).sort((a, b) => b.date.localeCompare(a.date));
   const F = S.rev, t = todayStr();
   const inPer = (x) => F.per === 'all' ? true : F.per === '30' ? x.date >= addDays(t, -30) : F.per === 'm' ? x.date.slice(0, 7) === t.slice(0, 7) : x.date.slice(0, 7) === addDays(t.slice(0, 7) + '-01', -1).slice(0, 7);
