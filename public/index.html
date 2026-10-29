@@ -1373,12 +1373,12 @@ function openDeepRoom(room) {
     const nPh = Object.keys(f.photos).length + f.extra.length;
     $('#sheetBody').innerHTML = `<h3 class="t">${esc(room)}　${esc(t.name)}</h3>
       <div class="sub">${x.last ? `上次 ${mdShort(x.last)}（${esc(x.by)}）・到期 ${mdShort(x.due)}` : '還沒做過'}${x.redo ? '・<b style="color:var(--prio)">上次需重做</b>' : ''}</div>
-      <div class="lbl">細清內容（做完打勾）</div>
-      <div class="dchk">${items.map((it, i) => `<label><input type="checkbox" data-dck="${i}" ${f.checks.has(i) ? 'checked' : ''}><span>${esc(it)}</span></label>`).join('')}</div>
+      <div class="lbl">細清內容</div>
+      <ol class="dlist" style="padding-left:20px">${items.map((it) => `<li>${esc(it)}</li>`).join('')}</ol>
       <details class="tools" style="margin-top:10px"><summary>細清標準</summary><ul class="dlist">${std.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></details>
       <div class="lbl">拍照檢查（${nPh} 張）</div>
       <div class="dshots">${shots.map((s, i) => { const ph = s === '其他' ? null : f.photos[s];
-        return `<label class="dshot${ph ? ' has' : ''}">${ph ? `<img src="${ph}" alt="">` : '<span class="pl">＋</span>'}<span class="nm">${esc(s)}${s === '其他' && f.extra.length ? '（' + f.extra.length + '）' : ''}</span><input type="file" accept="image/*" ${s === '其他' ? 'multiple' : 'capture="environment"'} data-dshot="${esc(s)}" hidden></label>`; }).join('')}</div>
+        return `<label class="dshot${ph ? ' has' : ''}">${ph ? `<img src="${ph}" alt="">` : '<span class="pl">＋</span>'}<span class="nm">${esc(s)}${s === '其他' && f.extra.length ? '（' + f.extra.length + '）' : ''}</span><input type="file" accept="image/*" ${s === '其他' ? 'multiple' : ''} data-dshot="${esc(s)}" hidden></label>`; }).join('')}</div>
       ${f.extra.length ? `<div class="dthumbs" style="margin-top:6px">${f.extra.map((p, i) => `<img src="${p}" data-dx="${i}" alt="其他">`).join('')}</div><p class="muted small" style="margin:2px 0 0">點「其他」的照片可以刪掉</p>` : ''}
       <div class="lbl">細清人員</div><input type="text" id="dBy" value="${esc(f.by)}" placeholder="你的名字">
       <div class="lbl">日期</div><input type="date" id="dDate" value="${esc(f.d)}">
@@ -1386,7 +1386,6 @@ function openDeepRoom(room) {
       <div class="btnrow"><button class="btn ghost" id="dClose">取消</button><button class="btn wide" id="dSave">送出細清回報</button></div>
       ${hist.length ? `<h2>這間的紀錄</h2>${hist.map(dlogRow).join('')}` : ''}`;
     const keep = () => { f.by = $('#dBy').value; f.note = $('#dNote').value; f.d = $('#dDate').value || todayStr(); };
-    $('#sheetBody').querySelectorAll('[data-dck]').forEach((c) => (c.onchange = () => { c.checked ? f.checks.add(+c.dataset.dck) : f.checks.delete(+c.dataset.dck); }));
     $('#sheetBody').querySelectorAll('[data-dshot]').forEach((inp) => (inp.onchange = async () => {
       keep(); const s = inp.dataset.dshot;
       try { for (const file of inp.files) { const d = await shrink(file); if (s === '其他') f.extra.push(d); else f.photos[s] = d; } } catch (e) { toast(e.message, false, true); }
@@ -1400,11 +1399,10 @@ function openDeepRoom(room) {
       const miss = t.shots.filter((s) => !f.photos[s]);
       if (!Object.keys(f.photos).length && !f.extra.length) return toast('請至少拍一張照片', false, true);
       if (miss.length && !confirm(`還沒拍：${miss.join('、')}\n確定要送出嗎？`)) return;
-      if (f.checks.size < items.length && !confirm(`細清內容還有 ${items.length - f.checks.size} 項沒打勾，確定要送出嗎？`)) return;
       S.me = f.by.trim(); ls.set('eroom.me', S.me);
       const b = $('#dSave'); b.disabled = true; b.textContent = '上傳中⋯';
       try {
-        await api('deep/log', { method: 'POST', body: JSON.stringify({ p: S.prop, task: t.id, room, d: f.d, by: S.me, note: f.note, checks: [...f.checks], photos: [...Object.entries(f.photos).map(([label, data]) => ({ label, data })), ...f.extra.map((data) => ({ label: '其他', data }))] }) });
+        await api('deep/log', { method: 'POST', body: JSON.stringify({ p: S.prop, task: t.id, room, d: f.d, by: S.me, note: f.note, photos: [...Object.entries(f.photos).map(([label, data]) => ({ label, data })), ...f.extra.map((data) => ({ label: '其他', data }))] }) });
         closeSheet(); toast(`${room} 細清回報已送出`); renderDeep(true);
       } catch (e) { b.disabled = false; b.textContent = '送出細清回報'; toast(e.message, false, true); }
     };
@@ -1414,12 +1412,10 @@ function openDeepRoom(room) {
 function openDeepLog(id) {
   const l = S.deep.logs.find((x) => x.id === id); if (!l) return;
   const t = S.deep.tasks.find((x) => x.id === l.task_id) || { name: '', content: '' };
-  const items = lines(t.content);
   const [lab, cls] = REVIEW[l.status] || ['', ''];
   $('#sheetBody').innerHTML = `<h3 class="t">${esc(l.room)}　${esc(t.name)}</h3>
     <div class="sub">${mdShort(l.date)}・細清人員 ${esc(l.by)}・<span class="bdg ${cls}">${lab}</span></div>
     ${l.note ? `<div class="lbl">備註</div><p style="margin:0;white-space:pre-wrap">${esc(l.note)}</p>` : ''}
-    ${items.length ? `<div class="lbl">完成項目 ${l.checks.length}/${items.length}</div><ul class="dlist" style="list-style:none;padding-left:16px">${items.map((it, i) => `<li style="${l.checks.includes(i) ? '' : 'color:var(--prio)'}">${l.checks.includes(i) ? '✓' : '✗'} ${esc(it)}</li>`).join('')}</ul>` : ''}
     <div class="lbl">照片</div>
     <div class="dphotos">${l.photos.map((p) => `<a href="/api/photo/${p.id}" target="_blank" rel="noopener"><img src="/api/photo/${p.id}" alt="${esc(p.label)}" loading="lazy"><span>${esc(p.label)}</span></a>`).join('')}</div>
     ${l.review_note ? `<div class="lbl">管理員意見</div><p style="margin:0">${esc(l.review_note)}</p>` : ''}
