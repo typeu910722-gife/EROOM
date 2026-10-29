@@ -160,7 +160,7 @@ export async function onRequest(ctx) {
     if (path === 'dump' && m === 'GET') {
       if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
       const out = {};
-      for (const t of ['records', 'config', 'docs', 'settings', 'issues', 'photos', 'logs']) {
+      for (const t of ['records', 'config', 'docs', 'settings', 'issues', 'photos', 'logs', 'deep_tasks', 'deep_logs']) {
         try { out[t] = (await env.DB.prepare('SELECT * FROM ' + t).all()).results; } catch { out[t] = []; }
       }
       return json({ at: Date.now(), tables: out });
@@ -407,6 +407,7 @@ export async function onRequest(ctx) {
 
     // ---- 維護／房況紀錄（大家都能新增、編輯、刪除）----
     if (path === 'logs') return logsApi(request, env, url, m);
+    if (path === 'deep' || path.startsWith('deep/')) return deepApi(path, request, env, url, m);
     // 紀錄報表：期間內各類筆數、各房、每天／每月
     if (path === 'logs/report' && m === 'GET') {
       const from = url.searchParams.get('from'), to = url.searchParams.get('to');
@@ -666,7 +667,8 @@ async function pushDaily(env, { force = false, only = null } = {}) {
     if (!force && (await getS(env, 'line_last_' + p)) === date) { skipped.push(PROP_NAME[p] + '：今天已經傳過'); continue; }
     if (!force && (await unregistered(env, date)).includes(p)) { skipped.push(PROP_NAME[p] + '：今天還沒登記'); unreg.push(PROP_NAME[p]); continue; }
     const text = await dailyText(env, date, [p]);
-    await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: tg[p], messages: [{ type: 'text', text }] }) });
+    const deep = await deepText(env, p, date);
+    await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: tg[p], messages: [{ type: 'text', text }, ...(deep ? [{ type: 'text', text: deep }] : [])] }) });
     if (!force) await setS(env, 'line_last_' + p, date);
     sent.push(PROP_NAME[p]);
   }
@@ -780,7 +782,7 @@ async function line(sub, m, request, env, url, ctx) {
     if (b.autolog && typeof b.autolog === 'object') for (const p of PROPS) if (typeof b.autolog[p] === 'boolean') await setS(env, 'line_autolog_' + p, b.autolog[p] ? '1' : '0');
     return json({ ok: true });
   }
-  if (sub === 'preview' && m === 'GET') { const d = twDate(Date.now()); return json({ texts: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await dailyText(env, d, [p])]))) }); }
+  if (sub === 'preview' && m === 'GET') { const d = twDate(Date.now()); return json({ texts: Object.fromEntries(await Promise.all(PROPS.map(async (p) => { const dp = await deepText(env, p, d); return [p, (await dailyText(env, d, [p])) + (dp ? '\n\n―― 第二則 ――\n' + dp : '')]; }))) }); }
   if (sub === 'test' && m === 'POST') {
     const b = await body(request);
     try { return json(await pushDaily(env, { force: true, only: PROPS.includes(b?.p) ? b.p : null })); } catch (e) { return bad(e.message); }
@@ -938,6 +940,157 @@ async function logsApi(request, env, url, m) {
     if (!id) return bad('參數錯誤');
     await env.DB.prepare('UPDATE logs SET deleted=1, updated_at=? WHERE id=?').bind(Date.now(), id).run();
     return json({ ok: true });
+  }
+  return bad('找不到', 404);
+}
+
+
+// ======================= 細清 =======================
+// deep_tasks：細清項（每 months 個月一次）；deep_logs：每次回報（照片、細清人員、管理員檢查 ok／redo）
+const DEEP_SEED = {
+  ersu: [{
+    name: '乾濕分離濕區全細清', months: 1,
+    content: [
+      '淋浴拉門／玻璃隔間：內外兩面除水垢、皂垢；門軌、滑輪、門框邊條的積垢清乾淨',
+      '牆面磁磚與磁磚縫：由上往下刷洗，去除水垢、皂垢與黴斑',
+      '矽利康（玻璃、牆角、地面交界）：除黴；擦不掉的發黑拍照回報',
+      '地面磁磚與地縫：刷洗去黑垢，角落與擋水條下方也要刷到',
+      '排水孔：拆蓋清毛髮，拆防臭內蓋清洗，最後倒熱水沖',
+      '蓮蓬頭：拆下浸泡除水垢、出水孔疏通；水龍頭、升降桿、掛架除垢擦亮',
+      '沐浴備品架／置物架：拆下或底部清洗，去黏膩與鏽斑',
+      '浴缸（有浴缸的房）：內外、排水塞、溢水孔清洗',
+      '濕區天花板與通風口：檢查黴點並擦拭',
+      '收尾：全區清水沖淨，玻璃與金屬刮乾、擦乾，開抽風',
+    ].join('\n'),
+    standard: [
+      '玻璃：燈光下斜看沒有水痕、白色水垢、手印',
+      '磁磚縫、矽利康：沒有黑點、粉紅色黴垢（矽利康發黑擦不掉 → 拍照，備註「需重打矽利康」）',
+      '排水孔：沒有毛髮、沒有異味；開水 30 秒不積水',
+      '金屬件（龍頭、蓮蓬頭、桿子）：沒有白斑，擦乾有光澤',
+      '地面：手摸不滑、不黏，沒有積水',
+      '沒有刺鼻的清潔劑殘留味道',
+    ].join('\n'),
+    shots: ['玻璃隔間全景', '排水孔（打開蓋子）', '磁磚縫／矽利康特寫', '蓮蓬頭與水龍頭', '地面全景'],
+  }],
+};
+const addMonths = (d, n) => { const x = new Date(d + 'T00:00:00Z'); const day = x.getUTCDate(); x.setUTCDate(1); x.setUTCMonth(x.getUTCMonth() + n); x.setUTCDate(Math.min(day, new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate())); return x.toISOString().slice(0, 10); };
+const dayDiff = (a, b) => Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 864e5);
+const SOON_DAYS = 7, LIGHT_DAY = 11;
+async function deepSeed(env, p) {
+  if (!DEEP_SEED[p] || (await getS(env, 'deep_seeded_' + p))) return;
+  const now = Date.now();
+  for (const t of DEEP_SEED[p]) await env.DB.prepare('INSERT INTO deep_tasks (prop,name,months,content,standard,shots,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)').bind(p, t.name, t.months, t.content, t.standard, JSON.stringify(t.shots), now, now).run();
+  await setS(env, 'deep_seeded_' + p, '1');
+}
+const taskOut = (t) => ({ ...t, shots: JSON.parse(t.shots || '[]') });
+const dlogOut = (l) => ({ ...l, photos: JSON.parse(l.photos || '[]'), checks: JSON.parse(l.checks || '[]') });
+async function propRooms(env, p) { const c = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(p).first(); return c ? JSON.parse(c.data).rooms || [] : []; }
+// 每間房：最後一次（不算「需重做」）、下次到期、狀態 over 逾期／due 還沒做過／soon 快到期／ok
+async function deepState(env, p, today) {
+  await deepSeed(env, p);
+  const rooms = await propRooms(env, p);
+  const { results: tasks } = await env.DB.prepare('SELECT * FROM deep_tasks WHERE prop=? AND deleted=0 ORDER BY id').bind(p).all();
+  const { results: logs } = await env.DB.prepare("SELECT id,task_id,room,date,by,status FROM deep_logs WHERE prop=? AND deleted=0 ORDER BY date DESC, id DESC").bind(p).all();
+  const out = tasks.map(taskOut).map((t) => {
+    const st = {};
+    for (const r of rooms) {
+      const mine = logs.filter((l) => l.task_id === t.id && l.room === r);
+      const last = mine.find((l) => l.status !== 'redo');
+      const redo = mine[0] && mine[0].status === 'redo';
+      const due = last ? addMonths(last.date, t.months) : null;
+      const left = due ? dayDiff(due, today) : null;
+      st[r] = { last: last ? last.date : null, by: last ? last.by : '', review: last ? last.status : '', due, left, redo, state: redo ? 'over' : !last ? 'due' : left < 0 ? 'over' : left <= SOON_DAYS ? 'soon' : 'ok' };
+    }
+    return { ...t, rooms: st };
+  });
+  return { rooms, tasks: out };
+}
+// LINE 提醒：有逾期／快到期的房間，或今天要掃的少於 11 間（排得出人力）就提醒
+async function deepText(env, p, date) {
+  let S;
+  try { S = await deepState(env, p, date); } catch { return ''; }
+  if (!S.tasks.length) return '';
+  const { results } = await env.DB.prepare('SELECT room,data FROM records WHERE prop=? AND date=?').bind(p, date).all();
+  const R = {}; for (const r of results) R[r.room] = JSON.parse(r.data);
+  const todo = S.rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && KIND_LABEL[R[r].kind]).length;
+  const light = todo < LIGHT_DAY;
+  const free = (r) => !R[r] || !R[r].kind || R[r].kind === '退房';  // 今晚沒人住
+  const base = (await getS(env, 'site_url')) || 'https://eroom.yzprojecttw.com';
+  const out = [];
+  for (const t of S.tasks) {
+    const by = (a, b) => (S.rooms.indexOf(a) - S.rooms.indexOf(b));
+    const over = S.rooms.filter((r) => ['over', 'due'].includes(t.rooms[r].state)).sort(by);
+    const soon = S.rooms.filter((r) => t.rooms[r].state === 'soon').sort((a, b) => t.rooms[a].left - t.rooms[b].left);
+    let next = [];
+    if (light && !over.length && !soon.length) next = S.rooms.filter((r) => t.rooms[r].due).sort((a, b) => t.rooms[a].left - t.rooms[b].left).slice(0, 6);
+    if (!over.length && !soon.length && !next.length) continue;
+    const L = [`🧽細清提醒｜${t.name}（每 ${t.months} 個月）`];
+    if (light) L.push(`今天只要掃 ${todo} 間，可以安排細清`);
+    if (over.length) L.push(`❗該做了（${over.length}）：`, ...compact(over, {}));
+    if (soon.length) L.push(`⏰${SOON_DAYS} 天內到期（${soon.length}）：`, soon.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
+    if (next.length) L.push('📌最早到期：', next.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
+    const can = [...over, ...soon, ...next].filter(free);
+    if (can.length) L.push(`✅今晚空房可以做：${can.join('、')}`);
+    L.push(`👉 ${base}/?p=${p}&deep=${t.id}`);
+    out.push(L.join('\n'));
+  }
+  return out.join('\n\n').slice(0, 4900);
+}
+const mdShort = (d) => +d.slice(5, 7) + '/' + +d.slice(8, 10);
+
+async function deepApi(path, request, env, url, m) {
+  const p = url.searchParams.get('p');
+  const today = twDate(Date.now());
+  if (path === 'deep' && m === 'GET') {
+    if (!PROPS.includes(p)) return bad('館別錯誤');
+    const S = await deepState(env, p, today);
+    const { results } = await env.DB.prepare('SELECT * FROM deep_logs WHERE prop=? AND deleted=0 ORDER BY date DESC, id DESC LIMIT 300').bind(p).all();
+    return json({ ...S, logs: results.map(dlogOut), today, soonDays: SOON_DAYS });
+  }
+  if (path === 'deep/task') {
+    if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
+    const now = Date.now();
+    if (m === 'DELETE') { await env.DB.prepare('UPDATE deep_tasks SET deleted=1, updated_at=? WHERE id=?').bind(now, +url.searchParams.get('id')).run(); return json({ ok: true }); }
+    const b = await body(request);
+    if (!b || !PROPS.includes(b.p) || !String(b.name || '').trim()) return bad('要有名稱');
+    const months = Math.max(1, Math.min(12, parseInt(b.months) || 1));
+    const shots = (Array.isArray(b.shots) ? b.shots : []).map((s) => String(s).trim().slice(0, 30)).filter(Boolean).slice(0, 10);
+    const v = [String(b.name).trim().slice(0, 40), months, String(b.content || '').slice(0, 4000), String(b.standard || '').slice(0, 4000), JSON.stringify(shots), now];
+    if (b.id) await env.DB.prepare('UPDATE deep_tasks SET name=?,months=?,content=?,standard=?,shots=?,updated_at=? WHERE id=? AND prop=?').bind(...v, +b.id, b.p).run();
+    else await env.DB.prepare('INSERT INTO deep_tasks (name,months,content,standard,shots,updated_at,prop,created_at) VALUES (?,?,?,?,?,?,?,?)').bind(...v, b.p, now).run();
+    return json({ ok: true });
+  }
+  if (path === 'deep/log') {
+    const now = Date.now();
+    if (m === 'POST') {
+      const b = await body(request);
+      if (!b || !PROPS.includes(b.p) || !ROOM_RE.test(String(b.room || '')) || !Number.isInteger(b.task)) return bad('參數錯誤');
+      if (!String(b.by || '').trim()) return bad('請填細清人員');
+      const t = await env.DB.prepare('SELECT id FROM deep_tasks WHERE id=? AND prop=? AND deleted=0').bind(b.task, b.p).first();
+      if (!t) return bad('找不到這個細清項');
+      const ph = [], stmts = [];
+      for (const x of (Array.isArray(b.photos) ? b.photos : []).slice(0, 12)) {
+        const mm = /^data:(image\/(jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(x && x.data));
+        if (!mm || mm[3].length > 1_400_000) continue;
+        const id = crypto.randomUUID().replace(/-/g, '');
+        ph.push({ id, label: String(x.label || '').slice(0, 30) });
+        stmts.push(env.DB.prepare('INSERT INTO photos (id,mime,data,created_at) VALUES (?,?,?,?)').bind(id, mm[1], mm[3], now));
+      }
+      if (!ph.length) return bad('請至少拍一張照片');
+      const checks = (Array.isArray(b.checks) ? b.checks : []).map(Number).filter(Number.isInteger).slice(0, 50);
+      stmts.push(env.DB.prepare('INSERT INTO deep_logs (task_id,prop,room,date,by,photos,checks,note,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+        .bind(b.task, b.p, b.room, DATE_RE.test(b.d || '') ? b.d : today, String(b.by).trim().slice(0, 20), JSON.stringify(ph), JSON.stringify(checks), String(b.note || '').slice(0, 500), 'submitted', now, now));
+      await env.DB.batch(stmts);
+      return json({ ok: true, photos: ph.length });
+    }
+    if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
+    if (m === 'DELETE') { await env.DB.prepare('UPDATE deep_logs SET deleted=1, updated_at=? WHERE id=?').bind(now, +url.searchParams.get('id')).run(); return json({ ok: true }); }
+    if (m === 'PATCH' || m === 'PUT') {
+      const b = await body(request);
+      if (!b || !Number.isInteger(b.id) || !['ok', 'redo', 'submitted'].includes(b.status)) return bad('參數錯誤');
+      await env.DB.prepare('UPDATE deep_logs SET status=?, review_note=?, reviewed_at=?, updated_at=? WHERE id=?').bind(b.status, String(b.review_note || '').slice(0, 300), now, now, b.id).run();
+      return json({ ok: true });
+    }
   }
   return bad('找不到', 404);
 }

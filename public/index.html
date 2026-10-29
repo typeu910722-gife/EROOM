@@ -272,6 +272,17 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .rvi.neg{border-color:var(--prio)}
 .bfmini{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:10px 14px;margin:14px 0 0;font-size:14px;color:inherit}
 .bfmini b{font-family:var(--serif);font-size:22px;color:var(--gold2)}
+.acc.d-over,.acc.d-due{border-color:var(--prio)}.acc.d-soon{border-color:var(--gold)}.acc .soon{color:var(--gold)}
+.dlist{margin:0;padding:4px 16px 12px 34px;font-size:14px;line-height:1.6}.dlist li{margin:3px 0}
+.dchk{display:flex;flex-direction:column;gap:2px}.dchk label{display:flex;gap:10px;align-items:flex-start;padding:7px 2px;border-top:1px solid var(--line2);font-size:14px;line-height:1.5}.dchk label:first-child{border-top:0}
+.dchk input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--btn)}
+.dshots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dshot{position:relative;aspect-ratio:1;border:1px dashed var(--gold);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;background:var(--panel)}
+.dshot.has{border-style:solid}.dshot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.dshot .pl{font-size:26px;color:var(--gold)}.dshot .nm{position:relative;font-size:11.5px;text-align:center;padding:2px 4px;line-height:1.3}
+.dshot.has .nm{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff}
+.dthumbs{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}.dthumbs img{width:48px;height:48px;object-fit:cover;border-radius:6px}
+.dphotos{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.dphotos a{color:inherit;text-decoration:none;font-size:12px}.dphotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block}
 .bfwrap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;height:calc(100vh - 230px);min-height:420px}
 .bfwrap iframe{width:100%;height:100%;border:0}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 8px 8px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
@@ -346,6 +357,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
     <div id="bfBody"></div>
   </section>
 
+  <!-- 細清 -->
+  <section class="page" id="p-deep">
+    <div id="deepBody"></div>
+  </section>
+
   <!-- 評論 -->
   <section class="page" id="p-rev">
     <div class="meta" id="revMeta" style="margin-top:16px"></div>
@@ -383,6 +399,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <button data-tab="rev" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>評論</button>
   <button data-tab="today" data-for="std" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>今日</button>
   <button data-tab="log" data-for="none" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/></svg>紀錄</button>
+  <button data-tab="deep" data-for="std" data-only="ersu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 21l4-9M9 12l6 3M15 15l3-12"/><path d="M4 21h9"/><circle cx="18" cy="5" r="0.5"/><path d="M19 9l2-1M20 12h2"/></svg>細清</button>
   <button data-tab="book" data-for="std"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h6M9 13h6"/></svg>手冊</button>
   <button data-tab="rooms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 21V4h12v17M3 21h18"/><circle cx="14.5" cy="12.5" r="1"/></svg>報表</button>
 </nav>
@@ -1290,6 +1307,161 @@ async function revReport(from, to) {
       ${tagE.length ? `<h2>被提到的問題</h2><div class="list">${tagE.map(([g, c]) => `<div class="rbar"><span style="width:96px;font-size:14px">${esc(g)}</span><span class="track"><i style="width:${c / tmax * 100}%"></i></span><b>${c}</b></div>`).join('')}</div>` : ''}`;
   } catch {}
 }
+// ---------- 細清（貳宿）----------
+S.deep = null; S.deepTask = 0;
+const DST = { over: ['該做了', 'old'], due: ['還沒做過', 'old'], soon: ['快到期', 'soon'], ok: ['已完成', 'ok'] };
+async function loadDeep() { S.deep = await api('deep?p=' + S.prop); S.deep.prop = S.prop; return S.deep; }
+const lines = (t) => String(t || '').split('\n').map((x) => x.trim()).filter(Boolean);
+async function renderDeep(fresh) {
+  const el = $('#deepBody');
+  if (!S.deep || S.deep.prop !== S.prop || fresh) {
+    if (!S.deep || S.deep.prop !== S.prop) el.innerHTML = '<p class="empty">讀取中⋯</p>';
+    try { await loadDeep(); } catch (e) { el.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
+    if (S.tab !== 'deep') return;
+  }
+  const D = S.deep;
+  if (!D.tasks.find((t) => t.id === S.deepTask)) S.deepTask = D.tasks[0] ? D.tasks[0].id : 0;
+  const t = D.tasks.find((x) => x.id === S.deepTask);
+  const head = `<div class="chips" style="margin:16px 0 4px">${D.tasks.map((x) => `<button class="chip" data-dtask="${x.id}" aria-pressed="${x.id === S.deepTask}">${esc(x.name)}</button>`).join('')}
+    ${S.admin ? '<button class="chip" data-dedit="0">＋ 新增細清項</button>' : ''}</div>`;
+  if (!t) { el.innerHTML = head + `<p class="empty">還沒有細清項。${S.admin ? '按「＋ 新增細清項」。' : '請管理員新增。'}</p>`; return; }
+  const rooms = D.rooms, st = t.rooms;
+  const n = (k) => rooms.filter((r) => st[r].state === k).length;
+  const pend = D.logs.filter((l) => l.task_id === t.id && l.status === 'submitted').length;
+  const floors = {}; for (const r of rooms) (floors[r.length >= 3 ? r.slice(0, -2) : r[0]] ||= []).push(r);
+  const recent = D.logs.filter((l) => l.task_id === t.id).slice(0, 30);
+  el.innerHTML = head + `
+    <div class="meta"><span>每 ${t.months} 個月一次・到期前 ${D.soonDays} 天提醒；當天要掃少於 11 間也會在 LINE 群組提醒</span>${S.admin ? `<button class="btn ghost" data-dedit="${t.id}" style="margin-left:auto">編輯</button>` : ''}</div>
+    <div class="stats">
+      <div class="stat"><b style="color:var(--prio)">${n('over') + n('due')}</b><span>該做了（間）</span></div>
+      <div class="stat"><b>${n('soon')}</b><span>${D.soonDays} 天內到期</span></div>
+      <div class="stat"><b style="color:var(--done)">${n('ok')}</b><span>本期完成</span></div>
+      ${pend ? `<div class="stat"><b>${pend}</b><span>待管理員檢查</span></div>` : ''}
+    </div>
+    <details class="tools"><summary>細清內容（${lines(t.content).length} 項）</summary><ol class="dlist">${lines(t.content).map((x) => `<li>${esc(x)}</li>`).join('')}</ol></details>
+    <details class="tools"><summary>細清標準</summary><ul class="dlist">${lines(t.standard).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></details>
+    <h2>房間表</h2>
+    ${Object.entries(floors).map(([f, rs]) => `<div class="acg">${rs.map((r) => { const x = st[r]; const [lab, cls] = DST[x.state];
+      return `<button class="acc d-${x.state}" data-droom="${esc(r)}"><b>${esc(r)}</b><span class="${cls}">${x.redo ? '需重做' : lab}</span><span>${x.last ? '上次 ' + mdShort(x.last) : '—'}${x.due ? '・到期 ' + mdShort(x.due) : ''}</span></button>`; }).join('')}</div>`).join('')}
+    <div class="legend"><span><i class="dot" style="background:var(--prio)"></i>該做了</span><span><i class="dot" style="background:var(--gold)"></i>快到期</span><span><i class="dot" style="background:var(--done)"></i>已完成</span></div>
+    <h2>最近回報</h2>
+    ${recent.length ? recent.map(dlogRow).join('') : '<p class="muted small">還沒有細清回報。點房號開始。</p>'}`;
+}
+const REVIEW = { submitted: ['待檢查', 'dim'], ok: ['合格', ''], redo: ['需重做', 'red'] };
+function dlogRow(l) {
+  const [lab, cls] = REVIEW[l.status] || ['', ''];
+  return `<button class="logi" data-dlog="${l.id}"><span class="no">${esc(l.room)}</span><span class="bd"><span class="tp"><span class="bdg ${cls}">${lab}</span><span class="dt">${mdShort(l.date)}</span><span class="muted small">${esc(l.by)}・${l.photos.length} 張照片</span></span>
+    ${l.note ? `<p class="tx">${esc(l.note)}</p>` : ''}${l.review_note ? `<div class="by">管理員：${esc(l.review_note)}</div>` : ''}
+    <span class="dthumbs">${l.photos.slice(0, 5).map((p) => `<img src="/api/photo/${p.id}" alt="${esc(p.label)}" loading="lazy">`).join('')}</span></span></button>`;
+}
+// 照片壓縮（最長邊 1280、JPEG）
+function shrink(file) {
+  return new Promise((ok, fail) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 1280 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', 0.72)); };
+    img.onerror = () => { URL.revokeObjectURL(u); fail(new Error('讀不到照片')); };
+    img.src = u;
+  });
+}
+function openDeepRoom(room) {
+  const D = S.deep, t = D.tasks.find((x) => x.id === S.deepTask); if (!t) return;
+  const x = t.rooms[room], items = lines(t.content), std = lines(t.standard);
+  const shots = [...t.shots, '其他'];
+  const f = { checks: new Set(), photos: {}, extra: [], by: S.me || '', note: '', d: todayStr() };
+  const hist = D.logs.filter((l) => l.task_id === t.id && l.room === room);
+  const draw = () => {
+    const nPh = Object.keys(f.photos).length + f.extra.length;
+    $('#sheetBody').innerHTML = `<h3 class="t">${esc(room)}　${esc(t.name)}</h3>
+      <div class="sub">${x.last ? `上次 ${mdShort(x.last)}（${esc(x.by)}）・到期 ${mdShort(x.due)}` : '還沒做過'}${x.redo ? '・<b style="color:var(--prio)">上次需重做</b>' : ''}</div>
+      <div class="lbl">細清內容（做完打勾）</div>
+      <div class="dchk">${items.map((it, i) => `<label><input type="checkbox" data-dck="${i}" ${f.checks.has(i) ? 'checked' : ''}><span>${esc(it)}</span></label>`).join('')}</div>
+      <details class="tools" style="margin-top:10px"><summary>細清標準</summary><ul class="dlist">${std.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></details>
+      <div class="lbl">拍照檢查（${nPh} 張）</div>
+      <div class="dshots">${shots.map((s, i) => { const ph = s === '其他' ? null : f.photos[s];
+        return `<label class="dshot${ph ? ' has' : ''}">${ph ? `<img src="${ph}" alt="">` : '<span class="pl">＋</span>'}<span class="nm">${esc(s)}${s === '其他' && f.extra.length ? '（' + f.extra.length + '）' : ''}</span><input type="file" accept="image/*" ${s === '其他' ? 'multiple' : 'capture="environment"'} data-dshot="${esc(s)}" hidden></label>`; }).join('')}</div>
+      ${f.extra.length ? `<div class="dthumbs" style="margin-top:6px">${f.extra.map((p, i) => `<img src="${p}" data-dx="${i}" alt="其他">`).join('')}</div><p class="muted small" style="margin:2px 0 0">點「其他」的照片可以刪掉</p>` : ''}
+      <div class="lbl">細清人員</div><input type="text" id="dBy" value="${esc(f.by)}" placeholder="你的名字">
+      <div class="lbl">日期</div><input type="date" id="dDate" value="${esc(f.d)}">
+      <div class="lbl">備註（有異常寫這裡，例如矽利康需重打）</div><textarea id="dNote">${esc(f.note)}</textarea>
+      <div class="btnrow"><button class="btn ghost" id="dClose">取消</button><button class="btn wide" id="dSave">送出細清回報</button></div>
+      ${hist.length ? `<h2>這間的紀錄</h2>${hist.map(dlogRow).join('')}` : ''}`;
+    const keep = () => { f.by = $('#dBy').value; f.note = $('#dNote').value; f.d = $('#dDate').value || todayStr(); };
+    $('#sheetBody').querySelectorAll('[data-dck]').forEach((c) => (c.onchange = () => { c.checked ? f.checks.add(+c.dataset.dck) : f.checks.delete(+c.dataset.dck); }));
+    $('#sheetBody').querySelectorAll('[data-dshot]').forEach((inp) => (inp.onchange = async () => {
+      keep(); const s = inp.dataset.dshot;
+      try { for (const file of inp.files) { const d = await shrink(file); if (s === '其他') f.extra.push(d); else f.photos[s] = d; } } catch (e) { toast(e.message, false, true); }
+      draw();
+    }));
+    $('#sheetBody').querySelectorAll('[data-dx]').forEach((im) => (im.onclick = () => { keep(); f.extra.splice(+im.dataset.dx, 1); draw(); }));
+    $('#dClose').onclick = closeSheet;
+    $('#dSave').onclick = async () => {
+      keep();
+      if (!f.by.trim()) return toast('請填細清人員', false, true);
+      const miss = t.shots.filter((s) => !f.photos[s]);
+      if (!Object.keys(f.photos).length && !f.extra.length) return toast('請至少拍一張照片', false, true);
+      if (miss.length && !confirm(`還沒拍：${miss.join('、')}\n確定要送出嗎？`)) return;
+      if (f.checks.size < items.length && !confirm(`細清內容還有 ${items.length - f.checks.size} 項沒打勾，確定要送出嗎？`)) return;
+      S.me = f.by.trim(); ls.set('eroom.me', S.me);
+      const b = $('#dSave'); b.disabled = true; b.textContent = '上傳中⋯';
+      try {
+        await api('deep/log', { method: 'POST', body: JSON.stringify({ p: S.prop, task: t.id, room, d: f.d, by: S.me, note: f.note, checks: [...f.checks], photos: [...Object.entries(f.photos).map(([label, data]) => ({ label, data })), ...f.extra.map((data) => ({ label: '其他', data }))] }) });
+        closeSheet(); toast(`${room} 細清回報已送出`); renderDeep(true);
+      } catch (e) { b.disabled = false; b.textContent = '送出細清回報'; toast(e.message, false, true); }
+    };
+  };
+  draw(); openSheet();
+}
+function openDeepLog(id) {
+  const l = S.deep.logs.find((x) => x.id === id); if (!l) return;
+  const t = S.deep.tasks.find((x) => x.id === l.task_id) || { name: '', content: '' };
+  const items = lines(t.content);
+  const [lab, cls] = REVIEW[l.status] || ['', ''];
+  $('#sheetBody').innerHTML = `<h3 class="t">${esc(l.room)}　${esc(t.name)}</h3>
+    <div class="sub">${mdShort(l.date)}・細清人員 ${esc(l.by)}・<span class="bdg ${cls}">${lab}</span></div>
+    ${l.note ? `<div class="lbl">備註</div><p style="margin:0;white-space:pre-wrap">${esc(l.note)}</p>` : ''}
+    ${items.length ? `<div class="lbl">完成項目 ${l.checks.length}/${items.length}</div><ul class="dlist" style="list-style:none;padding-left:16px">${items.map((it, i) => `<li style="${l.checks.includes(i) ? '' : 'color:var(--prio)'}">${l.checks.includes(i) ? '✓' : '✗'} ${esc(it)}</li>`).join('')}</ul>` : ''}
+    <div class="lbl">照片</div>
+    <div class="dphotos">${l.photos.map((p) => `<a href="/api/photo/${p.id}" target="_blank" rel="noopener"><img src="/api/photo/${p.id}" alt="${esc(p.label)}" loading="lazy"><span>${esc(p.label)}</span></a>`).join('')}</div>
+    ${l.review_note ? `<div class="lbl">管理員意見</div><p style="margin:0">${esc(l.review_note)}</p>` : ''}
+    ${S.admin ? `<div class="lbl">管理員檢查</div><input type="text" id="rvNote" value="${esc(l.review_note)}" placeholder="意見（選填，需重做請寫原因）">
+      <div class="btnrow"><button class="btn ghost" data-rvs="redo" style="color:var(--prio)">需重做</button><button class="btn wide" data-rvs="ok">合格</button></div>
+      <div class="btnrow"><button class="btn ghost" id="dlDel" style="margin-right:auto">刪除這筆</button></div>` : '<div class="btnrow"><button class="btn wide" id="dlClose">關閉</button></div>'}`;
+  const c = $('#dlClose'); if (c) c.onclick = closeSheet;
+  $('#sheetBody').querySelectorAll('[data-rvs]').forEach((b) => (b.onclick = async () => {
+    try { await api('deep/log', { method: 'PATCH', body: JSON.stringify({ id: l.id, status: b.dataset.rvs, review_note: $('#rvNote').value }) }); closeSheet(); toast(b.dataset.rvs === 'ok' ? '已標記合格' : '已標記需重做，房間會回到「該做了」'); renderDeep(true); } catch (e) { toast(e.message, false, true); }
+  }));
+  const del = $('#dlDel');
+  if (del) del.onclick = async () => { if (!confirm('刪除這筆細清回報？')) return; try { await api('deep/log?id=' + l.id, { method: 'DELETE' }); closeSheet(); renderDeep(true); } catch (e) { toast(e.message, false, true); } };
+  openSheet();
+}
+function openDeepTask(id) {
+  const t = id ? S.deep.tasks.find((x) => x.id === id) : { name: '', months: 1, content: '', standard: '', shots: [] };
+  $('#sheetBody').innerHTML = `<h3 class="t">${id ? '編輯細清項' : '新增細清項'}</h3><div class="sub">${esc(PROPS[S.prop])}</div>
+    <div class="lbl">名稱</div><input type="text" id="tName" value="${esc(t.name)}" placeholder="例如：乾濕分離濕區全細清">
+    <div class="lbl">頻率</div><div class="chips">${[1, 2].map((n) => `<button class="chip" data-tm="${n}" aria-pressed="${t.months === n}">${n === 1 ? '一個月一次' : '兩個月一次'}</button>`).join('')}</div>
+    <div class="lbl">細清內容（一行一項，員工會逐項打勾）</div><textarea id="tCont" rows="8">${esc(t.content)}</textarea>
+    <div class="lbl">細清標準（一行一條）</div><textarea id="tStd" rows="6">${esc(t.standard)}</textarea>
+    <div class="lbl">必拍照片（一行一張）</div><textarea id="tShots" rows="4" placeholder="例如：排水孔（打開蓋子）">${esc(t.shots.join('\n'))}</textarea>
+    <div class="btnrow">${id ? '<button class="btn ghost" id="tDel" style="color:var(--prio)">刪除</button>' : ''}<button class="btn ghost" id="tClose">取消</button><button class="btn wide" id="tSave">儲存</button></div>`;
+  let months = t.months;
+  $('#sheetBody').querySelectorAll('[data-tm]').forEach((b) => (b.onclick = () => { months = +b.dataset.tm; $('#sheetBody').querySelectorAll('[data-tm]').forEach((x) => x.setAttribute('aria-pressed', x === b)); }));
+  $('#tClose').onclick = closeSheet;
+  $('#tSave').onclick = async () => {
+    try { await api('deep/task', { method: 'POST', body: JSON.stringify({ id: id || undefined, p: S.prop, name: $('#tName').value, months, content: $('#tCont').value, standard: $('#tStd').value, shots: lines($('#tShots').value) }) }); closeSheet(); toast('已儲存'); renderDeep(true); } catch (e) { toast(e.message, false, true); }
+  };
+  const del = $('#tDel');
+  if (del) del.onclick = async () => { if (!confirm(`刪除「${t.name}」？（已回報的紀錄會保留）`)) return; try { await api('deep/task?id=' + id, { method: 'DELETE' }); closeSheet(); S.deepTask = 0; renderDeep(true); } catch (e) { toast(e.message, false, true); } };
+  openSheet();
+}
+document.addEventListener('click', (e) => {
+  if (S.tab !== 'deep' && !e.target.closest('#sheet')) return;
+  const a = e.target.closest('[data-dtask],[data-droom],[data-dlog],[data-dedit]'); if (!a) return;
+  if (a.dataset.dtask) { S.deepTask = +a.dataset.dtask; renderDeep(); }
+  else if (a.dataset.droom) openDeepRoom(a.dataset.droom);
+  else if (a.dataset.dlog) openDeepLog(+a.dataset.dlog);
+  else if (a.dataset.dedit != null) openDeepTask(+a.dataset.dedit);
+});
+
 // ---- 評論 ----
 function parseRev(rows) {
   const head = rows[0] || [];
@@ -1474,7 +1646,7 @@ $('#nextDay').onclick = () => shiftDate(1);
 $('#goToday').onclick = () => { S.date = todayStr(); refresh(); };
 async function shiftDate(n) { S.date = addDays(S.date, n); refresh(); }
 // 貳侶只有：清理、故障、早餐、評論、報表；其他館：今日、手冊、報表
-function tabsFor(p) { return [...document.querySelectorAll('nav.tabs button')].filter((b) => !b.dataset.for || b.dataset.for === (p === 'erlu' ? 'erlu' : 'std')).map((b) => b.dataset.tab); }
+function tabsFor(p) { return [...document.querySelectorAll('nav.tabs button')].filter((b) => (!b.dataset.for || b.dataset.for === (p === 'erlu' ? 'erlu' : 'std')) && (!b.dataset.only || b.dataset.only.split(',').includes(p))).map((b) => b.dataset.tab); }
 function goTab(t) {
   const ok = tabsFor(S.prop);
   if (!ok.includes(t)) t = ok[0];
@@ -1507,6 +1679,7 @@ function renderAll() {
   if (S.tab === 'log' || S.tab === 'clean' || S.tab === 'fault') renderLogs();
   if (S.tab === 'bf') renderBf();
   if (S.tab === 'rev') renderRev();
+  if (S.tab === 'deep') renderDeep();
   if (S.tab === 'book') renderBook();
   if (S.tab === 'rooms') renderRooms();
 }
@@ -1519,6 +1692,7 @@ setInterval(() => { if (!document.hidden && S.tab === 'today' && !S.pending.leng
   const q = new URLSearchParams(location.search);
   if (PROPS[q.get('p')]) S.prop = q.get('p');
   if (/^\d{4}-\d{2}-\d{2}$/.test(q.get('d') || '')) S.date = q.get('d');
+  if (q.get('deep')) { S.tab = 'deep'; S.deepTask = +q.get('deep') || 0; }
   renderLock();
   document.querySelectorAll('[data-prop]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.prop === S.prop));
   goTab(S.tab);

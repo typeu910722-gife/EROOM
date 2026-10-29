@@ -13,7 +13,7 @@ const WEB = pick(join(here, 'web'), join(here, '..', 'public'));
 const API = pick(join(here, 'api.mjs'), join(here, '..', 'functions', 'api', '[[path]].js'));
 const SCHEMA = pick(join(here, 'schema.sql'), join(here, '..', 'schema.sql'));
 export const VERSION = JSON.parse(readFileSync(join(here, 'package.json'), 'utf8')).version;
-const TABLES = ['records', 'config', 'docs', 'settings', 'issues', 'photos', 'logs'];
+const TABLES = ['records', 'config', 'docs', 'settings', 'issues', 'photos', 'logs', 'deep_tasks', 'deep_logs'];
 
 // ---------- sql.js 包成 D1 的樣子 ----------
 async function openDb(file) {
