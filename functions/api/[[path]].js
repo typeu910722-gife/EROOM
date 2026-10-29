@@ -663,13 +663,17 @@ async function pushDaily(env, { force = false, only = null } = {}) {
   for (const p of PROPS) {
     if (only && p !== only) continue;
     if (!tg[p]) { skipped.push(PROP_NAME[p] + '：沒有綁定群組'); continue; }
-    if (!force && !(await pushOn(env, p))) { skipped.push(PROP_NAME[p] + '：每日推播關閉'); continue; }
-    if (!force && (await getS(env, 'line_last_' + p)) === date) { skipped.push(PROP_NAME[p] + '：今天已經傳過'); continue; }
-    if (!force && (await unregistered(env, date)).includes(p)) { skipped.push(PROP_NAME[p] + '：今天還沒登記'); unreg.push(PROP_NAME[p]); continue; }
-    const text = await dailyText(env, date, [p]);
-    const deep = await deepText(env, p, date);
-    await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: tg[p], messages: [{ type: 'text', text }, ...(deep ? [{ type: 'text', text: deep }] : [])] }) });
-    if (!force) await setS(env, 'line_last_' + p, date);
+    let daily = true;
+    if (!force && !(await pushOn(env, p))) { daily = false; skipped.push(PROP_NAME[p] + '：每日推播關閉'); }
+    else if (!force && (await getS(env, 'line_last_' + p)) === date) { daily = false; skipped.push(PROP_NAME[p] + '：今天已經傳過'); }
+    else if (!force && (await unregistered(env, date)).includes(p)) { daily = false; skipped.push(PROP_NAME[p] + '：今天還沒登記'); unreg.push(PROP_NAME[p]); }
+    // 細清提醒：每日推播關閉的館（貳侶）也會單獨傳；一天一次
+    const deep = !force && (await getS(env, 'line_deep_' + p)) === date ? '' : await deepText(env, p, date);
+    const messages = [...(daily ? [{ type: 'text', text: await dailyText(env, date, [p]) }] : []), ...(deep ? [{ type: 'text', text: deep }] : [])];
+    if (!messages.length) continue;
+    await lineApi(token, 'message/push', { method: 'POST', body: JSON.stringify({ to: tg[p], messages }) });
+    if (!force && daily) await setS(env, 'line_last_' + p, date);
+    if (!force && deep) await setS(env, 'line_deep_' + p, date);
     sent.push(PROP_NAME[p]);
   }
   if (unreg.length) { try { await alertAdmin(env, `⚠️ ${mdw(date)} 10:50 沒有傳送：${unreg.join('、')}今天還沒登記房況。\n登記好後到 E·ROOM「報表 → LINE 設定」按「傳一則今日打掃」補傳。`); } catch {} }
@@ -973,6 +977,27 @@ const DEEP_SEED = {
     shots: ['玻璃隔間全景', '排水孔（打開蓋子）', '磁磚縫／矽利康特寫', '蓮蓬頭與水龍頭', '地面全景'],
   }],
 };
+DEEP_SEED.erlu = [{
+  name: '冷氣濾網清潔', months: 1,
+  content: [
+    '關冷氣、拔插頭或關電源，等風扇完全停止再開',
+    '打開冷氣前蓋，取下兩片濾網（注意卡榫，不要硬拉）',
+    '先用吸塵器吸掉濾網正面灰塵',
+    '從濾網背面（出風那面）用清水沖洗，油垢多就用中性清潔劑加軟毛刷輕刷',
+    '濾網放陰涼處風乾，不要曝曬、不要用吹風機',
+    '前蓋、面板、出風口葉片用濕布擦拭，再用乾布擦乾',
+    '濾網完全乾了再裝回，確認卡好、前蓋蓋緊',
+    '開機測試 3 分鐘：出風正常、沒有異音、沒有異味、沒有滴水',
+  ].join('\n'),
+  standard: [
+    '濾網：對著光看網孔透光，沒有灰塵、毛髮、油垢，沒有破洞變形（有破洞拍照回報）',
+    '濾網裝回時是乾的，沒有水漬',
+    '面板與出風葉片：手摸沒有灰，沒有黑點霉斑',
+    '開機後出風順、沒有霉味或怪味、沒有滴水',
+    '遙控器能正常操作',
+  ].join('\n'),
+  shots: ['清洗前濾網', '清洗後濾網（裝回前）', '出風口葉片', '裝回後冷氣全景'],
+}];
 const addMonths = (d, n) => { const x = new Date(d + 'T00:00:00Z'); const day = x.getUTCDate(); x.setUTCDate(1); x.setUTCMonth(x.getUTCMonth() + n); x.setUTCDate(Math.min(day, new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate())); return x.toISOString().slice(0, 10); };
 const dayDiff = (a, b) => Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 864e5);
 const SOON_DAYS = 7, LIGHT_DAY = 11;
@@ -1013,7 +1038,7 @@ async function deepText(env, p, date) {
   const { results } = await env.DB.prepare('SELECT room,data FROM records WHERE prop=? AND date=?').bind(p, date).all();
   const R = {}; for (const r of results) R[r.room] = JSON.parse(r.data);
   const todo = S.rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && KIND_LABEL[R[r].kind]).length;
-  const light = todo < LIGHT_DAY;
+  const light = results.length > 0 && todo < LIGHT_DAY;  // 有登記房況才算（貳侶不登記）
   const free = (r) => !R[r] || !R[r].kind || R[r].kind === '退房';  // 今晚沒人住
   const base = (await getS(env, 'site_url')) || 'https://eroom.yzprojecttw.com';
   const out = [];
@@ -1030,7 +1055,7 @@ async function deepText(env, p, date) {
     if (soon.length) L.push(`⏰${SOON_DAYS} 天內到期（${soon.length}）：`, soon.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
     if (next.length) L.push('📌最早到期：', next.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
     const can = [...over, ...soon, ...next].filter(free);
-    if (can.length) L.push(`✅今晚空房可以做：${can.join('、')}`);
+    if (can.length && results.length) L.push(`✅今晚空房可以做：${can.join('、')}`);
     L.push(`👉 ${base}/?p=${p}&deep=${t.id}`);
     out.push(L.join('\n'));
   }

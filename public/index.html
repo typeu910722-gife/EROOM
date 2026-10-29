@@ -345,7 +345,6 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   <section class="page" id="p-log">
     <button class="addbtn" id="newLog">＋ 新增紀錄（冷氣清洗、維修、房況）</button>
     <div class="chips" id="logCats" style="margin:6px 0 4px"></div>
-    <div id="bfMini"></div>
     <div id="acWrap"></div>
     <h2 id="logTitle">紀錄</h2>
     <div id="logBody"></div>
@@ -359,6 +358,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 
   <!-- 細清 -->
   <section class="page" id="p-deep">
+    <div id="bfMini"></div>
     <div id="deepBody"></div>
   </section>
 
@@ -393,7 +393,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 </main>
 
 <nav class="tabs" aria-label="主選單">
-  <button data-tab="clean" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20h16M7 20V9l5-5 5 5v11"/><path d="M10 14h4"/></svg>清理</button>
+  <button data-tab="deep" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 21l4-9M9 12l6 3M15 15l3-12"/><path d="M4 21h9"/><circle cx="18" cy="5" r="0.5"/><path d="M19 9l2-1M20 12h2"/></svg>細清</button>
   <button data-tab="fault" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.6-.6-2.5z"/></svg>故障</button>
   <button data-tab="bf" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 10h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>早餐</button>
   <button data-tab="rev" data-for="erlu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>評論</button>
@@ -1081,7 +1081,6 @@ async function renderLogs(fresh = true) {
     const d = a.clean ? daysAgo(a.clean) : null;
     return `<button class="acc" data-logroom="${esc(r)}"><b>${esc(r)}</b><span class="${d == null ? 'old' : d > 90 ? 'old' : 'ok'}">${a.clean ? '清洗 ' + mdShort(a.clean) + '（' + (d === 0 ? '今天' : d + ' 天前') + '）' : '還沒有清洗紀錄'}</span>${a.fix ? `<span>維修 ${mdShort(a.fix)}</span>` : ''}</button>`;
   }).join('')}</div><p class="muted small" style="margin:0">超過 90 天沒清洗的顯示紅色。點房號可以直接新增那間的紀錄。</p>` : '';
-  $('#bfMini').innerHTML = ''; if (er && S.logCat === '清理') bfMini();
   $('#logTitle').textContent = er ? '最近' + S.logCat + '紀錄' : (S.logCat || '全部') + '紀錄';
   $('#logBody').innerHTML = J.logs.length ? J.logs.map((l) => `<button class="logi" data-logid="${l.id}">
       <span class="no">${esc(l.room)}</span>
@@ -1281,7 +1280,7 @@ async function bfMini() {
   try {
     const J = await loadSheet('早餐');
     const list = parseBf(J.rows || []).filter((o) => o.date === todayStr());
-    if (!list.length || S.logCat !== '清理' || S.prop !== 'erlu') return;
+    if (!list.length || S.tab !== 'deep' || S.prop !== 'erlu') return;
     const st = bfStats(list);
     $('#bfMini').innerHTML = `<button class="bfmini" data-gotab="bf">🍳 今日早餐 <b>${st.n}</b> 份<span class="muted small">A ${st.g.A}・B ${st.g.B}・外帶 ${st.g['外帶']}${st.ask.length ? `・<span style="color:var(--prio)">待確認 ${st.ask.length} 間</span>` : ''}</span></button>`;
   } catch {}
@@ -1314,6 +1313,7 @@ async function loadDeep() { S.deep = await api('deep?p=' + S.prop); S.deep.prop 
 const lines = (t) => String(t || '').split('\n').map((x) => x.trim()).filter(Boolean);
 async function renderDeep(fresh) {
   const el = $('#deepBody');
+  $('#bfMini').innerHTML = ''; if (S.prop === 'erlu') bfMini();
   if (!S.deep || S.deep.prop !== S.prop || fresh) {
     if (!S.deep || S.deep.prop !== S.prop) el.innerHTML = '<p class="empty">讀取中⋯</p>';
     try { await loadDeep(); } catch (e) { el.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
@@ -1331,7 +1331,7 @@ async function renderDeep(fresh) {
   const floors = {}; for (const r of rooms) (floors[r.length >= 3 ? r.slice(0, -2) : r[0]] ||= []).push(r);
   const recent = D.logs.filter((l) => l.task_id === t.id).slice(0, 30);
   el.innerHTML = head + `
-    <div class="meta"><span>每 ${t.months} 個月一次・到期前 ${D.soonDays} 天提醒；當天要掃少於 11 間也會在 LINE 群組提醒</span>${S.admin ? `<button class="btn ghost" data-dedit="${t.id}" style="margin-left:auto">編輯</button>` : ''}</div>
+    <div class="meta"><span>每 ${t.months} 個月一次・到期前 ${D.soonDays} 天在 LINE 群組提醒${S.prop === 'erlu' ? '' : '；當天要掃少於 11 間也會提醒'}</span>${S.admin ? `<button class="btn ghost" data-dedit="${t.id}" style="margin-left:auto">編輯</button>` : ''}</div>
     <div class="stats">
       <div class="stat"><b style="color:var(--prio)">${n('over') + n('due')}</b><span>該做了（間）</span></div>
       <div class="stat"><b>${n('soon')}</b><span>${D.soonDays} 天內到期</span></div>
@@ -1642,7 +1642,8 @@ $('#nextDay').onclick = () => shiftDate(1);
 $('#goToday').onclick = () => { S.date = todayStr(); refresh(); };
 async function shiftDate(n) { S.date = addDays(S.date, n); refresh(); }
 // 貳侶只有：清理、故障、早餐、評論、報表；其他館：今日、手冊、報表
-function tabsFor(p) { return [...document.querySelectorAll('nav.tabs button')].filter((b) => (!b.dataset.for || b.dataset.for === (p === 'erlu' ? 'erlu' : 'std')) && (!b.dataset.only || b.dataset.only.split(',').includes(p))).map((b) => b.dataset.tab); }
+const tabVis = (b, p) => (!b.dataset.for || b.dataset.for === (p === 'erlu' ? 'erlu' : 'std')) && (!b.dataset.only || b.dataset.only.split(',').includes(p));
+function tabsFor(p) { return [...document.querySelectorAll('nav.tabs button')].filter((b) => tabVis(b, p)).map((b) => b.dataset.tab); }
 function goTab(t) {
   const ok = tabsFor(S.prop);
   if (!ok.includes(t)) t = ok[0];
@@ -1651,7 +1652,7 @@ function goTab(t) {
   if (t === 'clean') S.logCat = '清理';
   else if (t === 'fault') S.logCat = '故障';
   else if (t === 'log' && (S.logCat === '清理' || S.logCat === '故障')) S.logCat = '';
-  document.querySelectorAll('nav.tabs button').forEach((b) => { b.hidden = !ok.includes(b.dataset.tab); b.toggleAttribute('aria-current', b.dataset.tab === t); if (b.dataset.tab === t) b.setAttribute('aria-current', 'page'); });
+  document.querySelectorAll('nav.tabs button').forEach((b) => { b.hidden = !tabVis(b, S.prop); b.toggleAttribute('aria-current', b.dataset.tab === t); if (b.dataset.tab === t) b.setAttribute('aria-current', 'page'); });
   const sec = { clean: 'log', fault: 'log' }[t] || t;
   document.querySelectorAll('section.page').forEach((x) => x.classList.toggle('on', x.id === 'p-' + sec));
   renderAll();
