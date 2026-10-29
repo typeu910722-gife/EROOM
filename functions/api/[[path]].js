@@ -1045,14 +1045,15 @@ async function deepText(env, p, date) {
   const out = [];
   for (const t of S.tasks) {
     const by = (a, b) => (S.rooms.indexOf(a) - S.rooms.indexOf(b));
-    const over = S.rooms.filter((r) => ['over', 'due'].includes(t.rooms[r].state)).sort(by);
+    // 還沒做過的不提醒；只提醒做過、快到期或已過期（含需重做）的房間
+    const over = S.rooms.filter((r) => t.rooms[r].state === 'over' && (t.rooms[r].last || t.rooms[r].redo)).sort(by);
     const soon = S.rooms.filter((r) => t.rooms[r].state === 'soon').sort((a, b) => t.rooms[a].left - t.rooms[b].left);
     let next = [];
     if (light && !over.length && !soon.length) next = S.rooms.filter((r) => t.rooms[r].due).sort((a, b) => t.rooms[a].left - t.rooms[b].left).slice(0, 6);
     if (!over.length && !soon.length && !next.length) continue;
     const L = [`🧽細清提醒｜${t.name}（${t.months === 6 ? "每半年" : "每 " + t.months + " 個月"}）`];
     if (light) L.push(`今天只要掃 ${todo} 間，可以安排細清`);
-    if (over.length) L.push(`❗該做了（${over.length}）：`, ...compact(over, {}));
+    if (over.length) L.push(`❗已到期（${over.length}）：`, ...compact(over, {}));
     if (soon.length) L.push(`⏰${soonDays(p)} 天內到期（${soon.length}）：`, soon.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
     if (next.length) L.push('📌最早到期：', next.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
     const can = [...over, ...soon, ...next].filter(free);
