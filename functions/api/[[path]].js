@@ -1000,7 +1000,8 @@ DEEP_SEED.erlu = [{
 }];
 const addMonths = (d, n) => { const x = new Date(d + 'T00:00:00Z'); const day = x.getUTCDate(); x.setUTCDate(1); x.setUTCMonth(x.getUTCMonth() + n); x.setUTCDate(Math.min(day, new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate())); return x.toISOString().slice(0, 10); };
 const dayDiff = (a, b) => Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 864e5);
-const SOON_DAYS = 7, LIGHT_DAY = 11;
+const SOON = { erlu: 14 }, soonDays = (p) => SOON[p] || 7, LIGHT_DAY = 11;  // 到期前幾天開始提醒：貳侶 14 天，其他 7 天
+const DEEP_MONTHS = [1, 2, 3, 6];
 async function deepSeed(env, p) {
   if (!DEEP_SEED[p] || (await getS(env, 'deep_seeded_' + p))) return;
   const now = Date.now();
@@ -1024,7 +1025,7 @@ async function deepState(env, p, today) {
       const redo = mine[0] && mine[0].status === 'redo';
       const due = last ? addMonths(last.date, t.months) : null;
       const left = due ? dayDiff(due, today) : null;
-      st[r] = { last: last ? last.date : null, by: last ? last.by : '', review: last ? last.status : '', due, left, redo, state: redo ? 'over' : !last ? 'due' : left < 0 ? 'over' : left <= SOON_DAYS ? 'soon' : 'ok' };
+      st[r] = { last: last ? last.date : null, by: last ? last.by : '', review: last ? last.status : '', due, left, redo, state: redo ? 'over' : !last ? 'due' : left < 0 ? 'over' : left <= soonDays(p) ? 'soon' : 'ok' };
     }
     return { ...t, rooms: st };
   });
@@ -1049,10 +1050,10 @@ async function deepText(env, p, date) {
     let next = [];
     if (light && !over.length && !soon.length) next = S.rooms.filter((r) => t.rooms[r].due).sort((a, b) => t.rooms[a].left - t.rooms[b].left).slice(0, 6);
     if (!over.length && !soon.length && !next.length) continue;
-    const L = [`🧽細清提醒｜${t.name}（每 ${t.months} 個月）`];
+    const L = [`🧽細清提醒｜${t.name}（${t.months === 6 ? "每半年" : "每 " + t.months + " 個月"}）`];
     if (light) L.push(`今天只要掃 ${todo} 間，可以安排細清`);
     if (over.length) L.push(`❗該做了（${over.length}）：`, ...compact(over, {}));
-    if (soon.length) L.push(`⏰${SOON_DAYS} 天內到期（${soon.length}）：`, soon.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
+    if (soon.length) L.push(`⏰${soonDays(p)} 天內到期（${soon.length}）：`, soon.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
     if (next.length) L.push('📌最早到期：', next.map((r) => `${r}（${mdShort(t.rooms[r].due)}）`).join('、'));
     const can = [...over, ...soon, ...next].filter(free);
     if (can.length && results.length) L.push(`✅今晚空房可以做：${can.join('、')}`);
@@ -1070,7 +1071,7 @@ async function deepApi(path, request, env, url, m) {
     if (!PROPS.includes(p)) return bad('館別錯誤');
     const S = await deepState(env, p, today);
     const { results } = await env.DB.prepare('SELECT * FROM deep_logs WHERE prop=? AND deleted=0 ORDER BY date DESC, id DESC LIMIT 300').bind(p).all();
-    return json({ ...S, logs: results.map(dlogOut), today, soonDays: SOON_DAYS });
+    return json({ ...S, logs: results.map(dlogOut), today, soonDays: soonDays(p), monthsOptions: DEEP_MONTHS });
   }
   if (path === 'deep/task') {
     if (!(await isAdmin(env, request))) return bad('需要管理員密碼', 401);
@@ -1078,7 +1079,7 @@ async function deepApi(path, request, env, url, m) {
     if (m === 'DELETE') { await env.DB.prepare('UPDATE deep_tasks SET deleted=1, updated_at=? WHERE id=?').bind(now, +url.searchParams.get('id')).run(); return json({ ok: true }); }
     const b = await body(request);
     if (!b || !PROPS.includes(b.p) || !String(b.name || '').trim()) return bad('要有名稱');
-    const months = Math.max(1, Math.min(12, parseInt(b.months) || 1));
+    const months = DEEP_MONTHS.includes(parseInt(b.months)) ? parseInt(b.months) : 1;
     const shots = (Array.isArray(b.shots) ? b.shots : []).map((s) => String(s).trim().slice(0, 30)).filter(Boolean).slice(0, 10);
     const v = [String(b.name).trim().slice(0, 40), months, String(b.content || '').slice(0, 4000), String(b.standard || '').slice(0, 4000), JSON.stringify(shots), now];
     if (b.id) await env.DB.prepare('UPDATE deep_tasks SET name=?,months=?,content=?,standard=?,shots=?,updated_at=? WHERE id=? AND prop=?').bind(...v, +b.id, b.p).run();

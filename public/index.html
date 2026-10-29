@@ -1331,7 +1331,7 @@ async function renderDeep(fresh) {
   const floors = {}; for (const r of rooms) (floors[r.length >= 3 ? r.slice(0, -2) : r[0]] ||= []).push(r);
   const recent = D.logs.filter((l) => l.task_id === t.id).slice(0, 30);
   el.innerHTML = head + `
-    <div class="meta"><span>每 ${t.months} 個月一次・到期前 ${D.soonDays} 天在 LINE 群組提醒${S.prop === 'erlu' ? '' : '；當天要掃少於 11 間也會提醒'}</span>${S.admin ? `<button class="btn ghost" data-dedit="${t.id}" style="margin-left:auto">編輯</button>` : ''}</div>
+    <div class="meta"><span>${t.months === 6 ? '每半年' : '每 ' + t.months + ' 個月'}一次・到期前 ${D.soonDays} 天在 LINE 群組提醒${S.prop === 'erlu' ? '' : '；當天要掃少於 11 間也會提醒'}</span>${S.admin ? `<button class="btn ghost" data-dedit="${t.id}" style="margin-left:auto">編輯</button>` : ''}</div>
     <div class="stats">
       <div class="stat"><b style="color:var(--prio)">${n('over') + n('due')}</b><span>該做了（間）</span></div>
       <div class="stat"><b>${n('soon')}</b><span>${D.soonDays} 天內到期</span></div>
@@ -1434,7 +1434,7 @@ function openDeepTask(id) {
   const t = id ? S.deep.tasks.find((x) => x.id === id) : { name: '', months: 1, content: '', standard: '', shots: [] };
   $('#sheetBody').innerHTML = `<h3 class="t">${id ? '編輯細清項' : '新增細清項'}</h3><div class="sub">${esc(PROPS[S.prop])}</div>
     <div class="lbl">名稱</div><input type="text" id="tName" value="${esc(t.name)}" placeholder="例如：乾濕分離濕區全細清">
-    <div class="lbl">頻率</div><div class="chips">${[1, 2].map((n) => `<button class="chip" data-tm="${n}" aria-pressed="${t.months === n}">${n === 1 ? '一個月一次' : '兩個月一次'}</button>`).join('')}</div>
+    <div class="lbl">頻率</div><div class="chips">${[[1, '一個月'], [2, '兩個月'], [3, '三個月'], [6, '半年']].map(([n, l]) => `<button class="chip" data-tm="${n}" aria-pressed="${t.months === n}">${l}一次</button>`).join('')}</div>
     <div class="lbl">細清內容（一行一項，員工會逐項打勾）</div><textarea id="tCont" rows="8">${esc(t.content)}</textarea>
     <div class="lbl">細清標準（一行一條）</div><textarea id="tStd" rows="6">${esc(t.standard)}</textarea>
     <div class="lbl">必拍照片（一行一張）</div><textarea id="tShots" rows="4" placeholder="例如：排水孔（打開蓋子）">${esc(t.shots.join('\n'))}</textarea>
