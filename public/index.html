@@ -283,6 +283,27 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 .dshot.has .nm{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff}
 .dthumbs{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}.dthumbs img{width:48px;height:48px;object-fit:cover;border-radius:6px}
 .dphotos{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.dphotos a{color:inherit;text-decoration:none;font-size:12px}.dphotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block}
+.quest{position:relative;margin:22px 0 4px;padding:14px 12px 8px;border:1px solid var(--gold);border-radius:6px;background:linear-gradient(180deg,rgba(212,170,90,.10),rgba(212,170,90,.02)),var(--panel);box-shadow:inset 0 0 0 3px var(--panel),inset 0 0 0 4px var(--line)}
+.quest::before,.quest::after{content:"";position:absolute;width:9px;height:9px;border:1.5px solid var(--gold);background:var(--bg);transform:rotate(45deg);top:-6px}
+.quest::before{left:14px}.quest::after{right:14px}
+.quest .qh{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 12px;font-family:var(--tc);font-weight:700;letter-spacing:.3em;color:var(--gold2);white-space:nowrap;font-size:15px}
+.quest .qh b{display:inline-block;min-width:22px;margin-left:6px;padding:0 6px;border-radius:4px;background:var(--btn);color:var(--on);letter-spacing:0;font-family:var(--serif);font-size:13px;line-height:20px;text-align:center}
+.qc{width:100%;display:flex;gap:12px;align-items:flex-start;text-align:left;background:none;border:0;border-top:1px dashed var(--line2);padding:9px 2px;color:inherit}
+.qc:first-of-type{border-top:0}
+.qc .qno{flex:none;width:54px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1.5px solid var(--gold);border-radius:6px 6px 14px 14px;background:var(--bg);box-shadow:0 2px 0 var(--line)}
+.qc .qno b{font-family:var(--serif);font-weight:700;font-size:20px;line-height:1;color:var(--gold2)}
+.qc .qno i{font-style:normal;font-size:10px;letter-spacing:.05em;color:var(--mute);margin-top:2px}
+.qc.k-退入 .qno{border-color:var(--prio)}.qc.k-退入 .qno b{color:var(--prio)}
+.qc .qb{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.qo{display:flex;gap:8px;align-items:baseline;font-size:15px;line-height:1.45}
+.qo .ic{flex:none;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:var(--panel2);border:1px solid var(--line2);font-size:14px;transform:translateY(5px)}
+.qo .tm{font-family:var(--serif);font-weight:700;color:var(--gold2);margin-right:2px}
+.qo.hot .ic{border-color:var(--prio)}.qo.hot .tx{color:var(--prio)}
+.qbang{flex:none;align-self:center;width:20px;height:20px;border-radius:4px;transform:rotate(45deg);background:var(--btn);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--btn);animation:qp 1.6s ease-in-out infinite}
+.qbang span{transform:rotate(-45deg);font-weight:900;font-size:13px;color:var(--on)}
+@keyframes qp{50%{transform:rotate(45deg) translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.qbang{animation:none}}
+.nchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.nchips button{border:1px dashed var(--gold);background:none;color:var(--gold);border-radius:999px;padding:3px 11px;font-size:13px}
 .bfwrap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;height:calc(100vh - 230px);min-height:420px}
 .bfwrap iframe{width:100%;height:100%;border:0}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 8px 8px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
@@ -330,6 +351,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 
     <div class="hero" id="counts"></div>
     <div id="todoList"></div>
+    <div id="quests"></div>
 
     <h2>總房間表</h2>
     <details class="tools" id="toolsBox">
@@ -632,7 +654,7 @@ function renderToday(flashRooms = []) {
   const rooms = S.rooms[S.prop] || [];
   if (!S.recs[key()] || !S.rooms[S.prop]) {
     $('#counts').innerHTML = '<div class="zero" data-state="loading">讀取中⋯</div>';
-    $('#todoList').innerHTML = ''; $('#floors').innerHTML = '';
+    $('#todoList').innerHTML = ''; $('#floors').innerHTML = ''; $('#quests').innerHTML = '';
     document.body.dataset.ready = '0';
     return;
   }
@@ -654,9 +676,11 @@ function renderToday(flashRooms = []) {
   $('#todoList').innerHTML = Object.keys(byFl).map((f) => `<div class="fgroup"><div class="fl">${esc(f)}F</div><ul>${
     byFl[f].sort((a, b) => (order[R[a].kind] ?? 3) - (order[R[b].kind] ?? 3) || rooms.indexOf(a) - rooms.indexOf(b)).map((r) => {
       const x = R[r];
-      const extra = [x.lateOut && '延後退房 ' + x.lateOut, x.earlyIn && '提早入住 ' + x.earlyIn, x.note].filter(Boolean).join('・');
+      const extra = [x.lateOut && '⏰' + x.lateOut, x.earlyIn && '🌅' + x.earlyIn, x.note && '📜'].filter(Boolean).join(' ');
       return `<li><button class="trow k-${esc(x.kind)}" data-open="${esc(r)}"><span class="no">${esc(r)}</span><span class="kd">${esc(KINDS[x.kind]?.label || x.kind)}</span>${x.kind === '退入' ? '<span class="pri">優先</span>' : ''}${extra ? `<span class="ex">${esc(extra)}</span>` : ''}</button></li>`;
     }).join('')}</ul></div>`).join('');
+
+  renderQuests(rooms, R);
 
   // 總房間表
   const fl = {};
@@ -664,6 +688,30 @@ function renderToday(flashRooms = []) {
   $('#floors').innerHTML = rooms.length ? Object.keys(fl).map((f) =>
     `<div class="floor"><div class="fl">${esc(f)}F</div><div class="grid">${fl[f].map((r) => plate(r, R[r], flashRooms.includes(r))).join('')}</div></div>`
   ).join('') : `<p class="empty">這館還沒有房號。到「報表 → 房間資料」設定（需要管理員）。</p>`;
+}
+// ---------- 今日狀況（備註任務板）----------
+const QICON = [
+  [/勿擾|不要打擾|DND/i, '🔕'], [/機車|租車|腳踏車|單車/, '🛵'], [/垃圾/, '🗑️'], [/加床|床|枕|被/, '🛏️'],
+  [/生日|壽星|佈置|蛋糕|紀念日/, '🎂'], [/寵物|狗|貓/, '🐾'], [/壞|故障|不亮|漏水|維修|修/, '🔧'], [/缺|備品|毛巾|衛生紙|浴巾/, '🧴'],
+  [/遺留|忘記|失物/, '🎒'], [/鑰匙|密碼|門卡/, '🔑'], [/早餐/, '🍳'], [/停車|車位/, '🅿️'], [/客訴|抱怨|注意/, '⚠️'],
+];
+const qIcon = (t) => (QICON.find(([re]) => re.test(t)) || [0, '📌'])[1];
+function renderQuests(rooms, R) {
+  const list = rooms.filter((r) => R[r] && (R[r].note || R[r].lateOut || R[r].earlyIn));
+  if (!list.length) { $('#quests').innerHTML = ''; return; }
+  const firstTime = (x) => [x.lateOut, x.earlyIn].filter(Boolean).sort()[0] || '99:99';
+  list.sort((a, b) => firstTime(R[a]).localeCompare(firstTime(R[b])) || rooms.indexOf(a) - rooms.indexOf(b));
+  $('#quests').innerHTML = `<div class="quest" role="list" aria-label="今日狀況"><div class="qh">今日狀況<b>${list.length}</b></div>${list.map((r) => {
+    const x = R[r];
+    const objs = [];
+    if (x.lateOut) objs.push({ ic: '⏰', tm: x.lateOut, tx: '加時（延後退房）', hot: true });
+    if (x.earlyIn) objs.push({ ic: '🌅', tm: x.earlyIn, tx: '提早入住', hot: true });
+    for (const t of String(x.note || '').split(/[\n；;]+/).map((t) => t.trim()).filter(Boolean)) objs.push({ ic: qIcon(t), tx: t, hot: /勿擾|故障|壞|客訴|注意|漏/.test(t) });
+    const urgent = objs.some((o) => o.hot);
+    return `<button class="qc k-${esc(x.kind || '')}" data-open="${esc(r)}" role="listitem"><span class="qno"><b>${esc(r)}</b><i>${esc({ '退入': '退→入', '退房': '退房', '續住': '續住', '入住': '入住' }[x.kind] || '空房')}</i></span>
+      <span class="qb">${objs.map((o) => `<span class="qo${o.hot ? ' hot' : ''}"><span class="ic" aria-hidden="true">${o.ic}</span><span class="tx">${o.tm ? `<span class="tm">${esc(o.tm)}</span>` : ''}${esc(o.tx)}</span></span>`).join('')}</span>
+      ${urgent ? '<span class="qbang" title="優先"><span>!</span></span>' : ''}</button>`;
+  }).join('')}</div>`;
 }
 function plate(r, x, flash) {
   x = x || {};
@@ -706,8 +754,9 @@ function openRoom(room) {
       ${x.kind ? `<div class="two" style="margin-top:4px">
         <div><div class="lbl">延後退房</div><input type="time" id="fLate" value="${esc(x.lateOut || '')}"></div>
         <div><div class="lbl">提早入住</div><input type="time" id="fEarly" value="${esc(x.earlyIn || '')}"></div></div>` : ''}
-      <div class="lbl">備註（勿擾、缺備品、故障、遺留物⋯）</div>
-      <textarea id="fNote" placeholder="例如：浴室燈不亮">${esc(x.note || '')}</textarea>
+      <div class="lbl">備註（會出現在「今日狀況」和 LINE 訊息）</div>
+      <div class="nchips">${['勿擾', '加床', '租機車', '倒垃圾', '生日佈置', '缺備品', '故障', '遺留物'].map((t) => `<button type="button" data-nadd="${t}">${qIcon(t)} ${t}</button>`).join('')}</div>
+      <textarea id="fNote" placeholder="例如：浴室燈不亮；2 點後倒垃圾（多件用；分開）">${esc(x.note || '')}</textarea>
       <div class="btnrow"><button class="btn ghost" id="sClose">取消</button><button class="btn wide" id="sSave">儲存</button></div>`;
   };
   draw();
@@ -717,6 +766,8 @@ function openRoom(room) {
     if (k) { x.kind = k.dataset.k; x.status = x.kind ? KINDS[x.kind].status : ''; if (!x.kind) { x.lateOut = ''; x.earlyIn = ''; } keepFields(); return draw(); }
     const s = e.target.closest('[data-s]');
     if (s) { x.status = s.dataset.s; keepFields(); return draw(); }
+    const na = e.target.closest('[data-nadd]');
+    if (na) { keepFields(); const t = na.dataset.nadd; if (!String(x.note || '').includes(t)) x.note = (x.note ? x.note.replace(/[；;\s]+$/, '') + '；' : '') + t; draw(); const n = $('#fNote'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); return; }
     if (e.target.id === 'sClose') return closeSheet();
     if (e.target.id === 'sSave') {
       keepFields();
@@ -1552,7 +1603,8 @@ async function renderLine() {
       ${Object.keys(PROPS).map((p) => `<div class="lbl">${PROPS[p]}</div>
         <select data-lnp="${p}"><option value="">不傳送</option>${gids.map((g) => `<option value="${esc(g)}" ${c.targets[p] === g ? 'selected' : ''}>${esc(gname(g))}</option>`).join('')}</select>
         <label class="sitem" style="padding:4px 0;border:0"><input type="checkbox" data-lnpush="${p}" ${c.push[p] ? 'checked' : ''}> 每天 10:50 傳今日打掃</label>
-        <label class="sitem" style="padding:4px 0;border:0"><input type="checkbox" data-lnauto="${p}" ${c.autolog[p] ? 'checked' : ''}> 群組回報自動登記到「紀錄」</label>
+        <label class="sitem" style="padding:4px 0;border:0"><input type="checkbox" data-lnauto="${p}" ${c.autolog[p] ? 'checked' : ''}> 群組回報故障自動登記</label>
+        <label class="sitem" style="padding:4px 0 4px 26px;border:0"><input type="checkbox" data-lnreply="${p}" ${c.reply && c.reply[p] ? 'checked' : ''}> 登記後在群組回覆確認（不勾＝安靜登記）</label>
         <p class="muted small" style="margin:2px 0 0">上次自動傳送：${esc(c.last[p] || '還沒有')}　<a href="#" data-lntest="${p}" style="color:var(--gold)">傳一則今日打掃</a></p>`).join('')}
       <label class="sitem" style="margin-top:12px"><input type="checkbox" id="lnOn" ${c.enabled ? 'checked' : ''}> 每日推播總開關</label>
       <div class="btnrow"><button class="btn wide" id="lnSave2">儲存推播設定</button></div>
@@ -1569,11 +1621,12 @@ async function renderLine() {
     catch (e) { toast(e.message, false, true); }
   };
   $('#lnSave2').onclick = async () => {
-    const targets = {}, push = {}, autolog = {};
+    const targets = {}, push = {}, autolog = {}, reply = {};
     document.querySelectorAll('[data-lnp]').forEach((x) => (targets[x.dataset.lnp] = x.value));
     document.querySelectorAll('[data-lnpush]').forEach((x) => (push[x.dataset.lnpush] = x.checked));
     document.querySelectorAll('[data-lnauto]').forEach((x) => (autolog[x.dataset.lnauto] = x.checked));
-    try { await api('line/config', { method: 'PUT', body: JSON.stringify({ targets, push, autolog, enabled: $('#lnOn').checked }) }); toast('推播設定已儲存'); renderLine(); }
+    document.querySelectorAll('[data-lnreply]').forEach((x) => (reply[x.dataset.lnreply] = x.checked));
+    try { await api('line/config', { method: 'PUT', body: JSON.stringify({ targets, push, autolog, reply, enabled: $('#lnOn').checked }) }); toast('推播設定已儲存'); renderLine(); }
     catch (e) { toast(e.message, false, true); }
   };
   const ca = $('#lnClrAdmin');

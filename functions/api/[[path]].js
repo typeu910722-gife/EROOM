@@ -611,7 +611,7 @@ async function dailyText(env, date, props = PROPS) {
     const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && KIND_LABEL[R[r].kind]).sort(byNo);
     const prio = list.filter((r) => R[r].kind === '退入');
     lines.push(`【${PROP_NAME[p]}】${list.length ? list.length + ' 間' : '今天不用掃'}`);
-    lines.push(...compact(list, R));
+    lines.push(...compact(list, {}));
     if (prio.length) {
       lines.push(`⭐今日入住（優先 ${prio.length}）：`);
       lines.push(...compact(prio, {}));
@@ -621,6 +621,9 @@ async function dailyText(env, date, props = PROPS) {
       lines.push('⚠️今日續住：');
       lines.push(...compact(stay, {}));
     }
+    // 今日狀況：備註、加時、提早入住，一間一行
+    const notes = rooms.filter((r) => R[r] && (R[r].note || R[r].lateOut || R[r].earlyIn)).map((r) => `${r} ${[R[r].lateOut && '加時 ' + R[r].lateOut, R[r].earlyIn && '提早入住 ' + R[r].earlyIn, R[r].note].filter(Boolean).join('，')}`);
+    if (notes.length) lines.push('今日狀況：', ...notes);
   }
   return lines.join('\n').slice(0, 4900);
 }
@@ -633,6 +636,7 @@ async function targets(env) {
 
 // 每館開關：每日推播（預設 貳宿／貳洋樓 開、貳侶 關）、群組自動登記紀錄（預設 貳旅 開）
 async function pushOn(env, p) { const v = await getS(env, 'line_push_' + p); return v == null || v === '' ? p !== 'erlu' : v === '1'; }
+async function replyOn(env, p) { return (await getS(env, 'line_reply_' + p)) === '1'; }  // 自動登記後要不要在群組回覆（預設安靜）
 async function autologOn(env, p) { const v = await getS(env, 'line_autolog_' + p); return v == null || v === '' ? p === 'erlu' : v === '1'; }
 
 async function unregistered(env, date) {
@@ -713,7 +717,7 @@ async function line(sub, m, request, env, url, ctx) {
           // AI 解析可能要幾秒，先回 LINE 200，背景處理完再回覆
           const job = (async () => {
             const res = await autoLog(env, p, text, ev, gid, token);
-            if (res && token && ev.replyToken) { try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: res }] }) }); } catch {} }
+            if (res && token && ev.replyToken && (await replyOn(env, p))) { try { await lineApi(token, 'message/reply', { method: 'POST', body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: 'text', text: res }] }) }); } catch {} }
           })().catch(() => {});
           if (ctx && ctx.waitUntil) ctx.waitUntil(job); else await job;
         }
@@ -766,7 +770,7 @@ async function line(sub, m, request, env, url, ctx) {
       hasSecret: !!(await getS(env, 'line_secret')), hasToken: !!(await getS(env, 'line_token')),
       groups: await groups(env), targets: await targets(env),
       enabled: (await getS(env, 'line_enabled')) === '1', last: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, (await getS(env, 'line_last_' + p)) || '']))),
-      push: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await pushOn(env, p)]))), autolog: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await autologOn(env, p)]))),
+      push: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await pushOn(env, p)]))), autolog: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await autologOn(env, p)]))), reply: Object.fromEntries(await Promise.all(PROPS.map(async (p) => [p, await replyOn(env, p)]))),
       webhook: url.origin + '/api/line/webhook', adminBound: !!(await getS(env, 'line_admin')),
     });
   }
@@ -784,6 +788,7 @@ async function line(sub, m, request, env, url, ctx) {
     if (b.clearAdmin === true) await setS(env, 'line_admin', '');
     if (b.push && typeof b.push === 'object') for (const p of PROPS) if (typeof b.push[p] === 'boolean') await setS(env, 'line_push_' + p, b.push[p] ? '1' : '0');
     if (b.autolog && typeof b.autolog === 'object') for (const p of PROPS) if (typeof b.autolog[p] === 'boolean') await setS(env, 'line_autolog_' + p, b.autolog[p] ? '1' : '0');
+    if (b.reply && typeof b.reply === 'object') for (const p of PROPS) if (typeof b.reply[p] === 'boolean') await setS(env, 'line_reply_' + p, b.reply[p] ? '1' : '0');
     return json({ ok: true });
   }
   if (sub === 'preview' && m === 'GET') { const d = twDate(Date.now()); return json({ texts: Object.fromEntries(await Promise.all(PROPS.map(async (p) => { const dp = await deepText(env, p, d); return [p, (await dailyText(env, d, [p])) + (dp ? '\n\n―― 第二則 ――\n' + dp : '')]; }))) }); }
