@@ -321,115 +321,131 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
   .props button{letter-spacing:.06em}
   .scrim{background:rgba(54,43,32,.35)}
 }
-/* ======== 卡牌風（中世紀卡牌遊戲）：body.card；設定在「報表 → 畫面風格」 ======== */
+/* ======== 卡牌風（低彩度桌遊卡牌）：body.card；設定在「報表 → 畫面風格」 ======== */
 body.card{
-  --bg:#15100b; --panel:#231a11; --panel2:#2d2216; --ink:#f1e6cf; --mute:#a99677; --faint:#6f604a;
-  --gold:#d4a650; --gold2:#f0cf86; --line:rgba(212,166,80,.34); --line2:rgba(241,230,207,.09);
-  --prio:#e0614f; --done:#7fbf86; --in:#7fa3dd; --todo:#d4a650;
+  --bg:#131210; --panel:#1b1916; --panel2:#211e1a; --ink:#ece5d6; --mute:#968c7a; --faint:#5e574b;
+  --gold:#c4a66c; --gold2:#ddc493; --line:rgba(196,166,108,.2); --line2:rgba(236,229,214,.07);
+  --prio:#d9785f; --done:#8fae88; --in:#8fa5c2; --todo:#c4a66c;
   --serif:"Cinzel","Noto Serif TC",serif; --tc:"Noto Serif TC",serif;
-  --hdr:rgba(21,16,11,.92); --hdr2:rgba(27,20,13,.97); --glow:#3a2814; --on:#1d140b; --btn:#d4a650; --prio-bg:#3a1915;
-  --card1:#2e2317; --card2:#1c150d; --frame:#b98a3e; --frame2:rgba(212,166,80,.28); --ribbon:#5b1f19; --ribbon2:#7d2b22;
-  --d1:#f0cf86; --d2:#9c6f2c;
-  background:
-    radial-gradient(90% 50% at 50% -8%,rgba(214,150,60,.22),transparent 60%),
-    radial-gradient(60% 40% at 0% 100%,rgba(120,40,30,.18),transparent 70%),
-    repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 2px,transparent 2px 7px),
-    var(--bg) fixed;
+  --hdr:rgba(19,18,16,.94); --hdr2:rgba(22,21,18,.97); --glow:#1d1a15; --on:#1a1611; --btn:#c4a66c; --prio-bg:#241b17;
+  --card:#1d1b17; --frame:rgba(196,166,108,.32);
+  background:var(--bg);
 }
 @media (prefers-color-scheme: light){body.card{
-  --bg:#eadbb6; --panel:#f8eed4; --panel2:#f1e2bd; --ink:#3b2814; --mute:#77603f; --faint:#a48c63;
-  --gold:#8a5a12; --gold2:#a5680c; --line:rgba(138,90,18,.35); --line2:rgba(59,40,20,.12);
-  --prio:#a8332a; --done:#3c7d4b; --in:#2f5c9b; --todo:#a5680c;
-  --serif:"Cinzel","Noto Serif TC",serif; --tc:"Noto Serif TC",serif;
-  --hdr:rgba(234,219,182,.93); --hdr2:rgba(241,226,189,.97); --glow:#f6ead0; --on:#fff8e6; --btn:#8a5a12; --prio-bg:#f4d9cc;
-  --card1:#fbf3dd; --card2:#efdfb8; --frame:#9b6a1e; --frame2:rgba(138,90,18,.3); --ribbon:#8f2b22; --ribbon2:#a8392d;
-  background:
-    radial-gradient(90% 50% at 50% -8%,rgba(255,250,235,.8),transparent 60%),
-    radial-gradient(70% 50% at 100% 100%,rgba(160,110,40,.14),transparent 70%),
-    var(--bg) fixed;
+  --bg:#f1ebdf; --panel:#fbf8f2; --panel2:#f5efe3; --ink:#2e261d; --mute:#76695a; --faint:#ada08b;
+  --gold:#8a6526; --gold2:#7a561a; --line:rgba(138,101,38,.22); --line2:rgba(46,38,29,.08);
+  --prio:#b5452f; --done:#3f7d4f; --in:#3e6496; --todo:#8a6526;
+  --hdr:rgba(241,235,223,.94); --hdr2:rgba(251,248,242,.97); --glow:#f6f1e7; --on:#fffaf0; --btn:#8a6526; --prio-bg:#f7e7e0;
+  --card:#fffdf8; --frame:rgba(138,101,38,.28);
+  background:var(--bg);
 }}
-/* 卡框：外框＋內框＋陰影 */
-body.card .plate,body.card .stat,body.card .logi,body.card .acc,body.card .rvi,body.card .bfg,body.card .tally,body.card .doc,body.card .list,body.card .bars,body.card details.tools,body.card .notice,body.card .pi,body.card .rtable,body.card .bfmini,body.card .datepill{
-  border:1px solid var(--frame);background:linear-gradient(165deg,var(--card1),var(--card2));
-  box-shadow:inset 0 0 0 3px var(--card2),inset 0 0 0 4px var(--frame2),0 3px 0 rgba(0,0,0,.28),0 6px 14px rgba(0,0,0,.18)}
-body.card h2{font-family:var(--tc);font-weight:700;letter-spacing:.25em;color:var(--gold2);justify-content:center}
-body.card h2::before,body.card h2::after{content:"";flex:1;height:7px;background:
-  linear-gradient(var(--frame),var(--frame)) center/100% 1px no-repeat,
-  radial-gradient(circle,var(--frame) 2.5px,transparent 3px) center/7px 7px no-repeat}
-body.card .brand{font-family:"Cinzel",serif;font-weight:700;letter-spacing:.22em;color:var(--gold2)}
-body.card .brand::before{content:"⚜ ";color:var(--gold)}
-/* 館別＝旗幟 */
-body.card .props button{font-family:var(--tc);border:0;padding:5px 10px 9px}
-body.card .props button[aria-pressed=true]{color:var(--on);background:linear-gradient(180deg,var(--ribbon2),var(--ribbon));clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%);border:0}
-@media (prefers-color-scheme: light){body.card .props button[aria-pressed=true]{color:#fff6e3}}
-body.card .lock{border-color:var(--frame);border-radius:6px;transform:rotate(45deg)}
-body.card .lock svg{transform:rotate(-45deg)}
-/* 底部＝木製工具列 */
-body.card nav.tabs{border-top:2px solid var(--frame);box-shadow:0 -1px 0 var(--card2),0 -6px 18px rgba(0,0,0,.25)}
-body.card nav.tabs button{color:var(--faint);font-family:var(--tc)}
-body.card nav.tabs button[aria-current=page]{color:var(--gold2)}
-body.card nav.tabs button[aria-current=page]::before{content:"";position:absolute;top:-6px;left:50%;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:var(--gold2);box-shadow:0 0 0 2px var(--hdr2),0 0 10px var(--gold)}
-/* 日期 */
-body.card .datepill{border-radius:6px}
-body.card .dayrow .date{font-family:"Cinzel",serif;font-weight:700}
-/* 今日任務數＝寶石徽章 */
-body.card .hero{margin-top:14px}
-body.card .hero .n{display:inline-grid;place-items:center;width:132px;height:132px;border-radius:50%;font-family:"Cinzel",serif;font-weight:700;font-size:62px;color:var(--gold2);
-  background:radial-gradient(circle at 35% 30%,var(--panel2),var(--card2) 70%);
-  box-shadow:inset 0 0 0 4px var(--card2),inset 0 0 0 6px var(--frame),0 0 0 2px var(--frame),0 0 0 7px var(--card2),0 0 0 8px var(--frame2),0 8px 24px rgba(0,0,0,.35)}
-body.card .hero .u{font-family:var(--tc);font-weight:700;color:var(--gold2);margin-top:12px}
-body.card .hero .u::before{content:"⚔ "}
-body.card .hero .u::after{content:" ⚔"}
-body.card .hero .sub .p b{color:var(--prio)}
-/* 今日要掃＝手牌 */
-body.card .fgroup{border-top:0;padding:10px 0 4px;flex-direction:column;gap:8px}
-body.card .fgroup .fl{width:auto;font-family:"Cinzel",serif;font-weight:700;font-size:15px;letter-spacing:.2em;color:var(--gold);display:flex;align-items:center;gap:10px;line-height:1}
-body.card .fgroup .fl::after{content:"";flex:1;height:1px;background:var(--line)}
-body.card .fgroup ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
-body.card .trow{position:relative;flex-direction:column;align-items:center;justify-content:space-between;gap:6px;min-height:112px;padding:28px 6px 0;border:1px solid var(--frame);border-radius:10px;
-  background:linear-gradient(165deg,var(--card1),var(--card2));box-shadow:inset 0 0 0 3px var(--card2),inset 0 0 0 4px var(--frame2),0 3px 0 rgba(0,0,0,.3),0 8px 16px rgba(0,0,0,.2);overflow:hidden;transition:transform .15s}
-body.card .trow:active{transform:translateY(2px)}
-body.card .trow .no{width:auto;font-family:"Cinzel",serif;font-weight:700;font-size:29px;color:var(--ink);text-align:center}
-body.card .trow .kd{align-self:stretch;margin:0 -6px;text-align:center;font-weight:700;font-size:12.5px;letter-spacing:.04em;padding:6px 2px 7px;white-space:nowrap;color:var(--ink);background:linear-gradient(180deg,var(--panel2),var(--card2));border-top:1px solid var(--frame2)}
-body.card .trow .pri{position:absolute;top:8px;left:8px;width:16px;height:16px;padding:0;font-size:0;border-radius:3px;transform:rotate(45deg);background:var(--prio);box-shadow:0 0 0 2px var(--card1),0 0 0 3px var(--prio)}
-body.card .trow .pri::after{content:"!";display:block;transform:rotate(-45deg);font-size:11px;font-weight:900;color:#fff;line-height:16px;text-align:center}
-body.card .trow .ex{position:absolute;top:6px;right:8px;margin:0;font-size:11.5px;color:var(--gold2)}
-body.card .trow.k-退入{border-color:var(--prio);box-shadow:inset 0 0 0 3px var(--card2),inset 0 0 0 4px rgba(224,97,79,.35),0 0 14px rgba(224,97,79,.25),0 3px 0 rgba(0,0,0,.3)}
-body.card .trow.k-退入 .kd{color:#fff3e6;background:linear-gradient(180deg,var(--ribbon2),var(--ribbon))}
-body.card .trow.k-退房 .kd{color:var(--on);background:linear-gradient(180deg,var(--gold2),var(--gold))}
-body.card .trow.k-續住 .kd{color:#f0f5ff;background:linear-gradient(180deg,#5b78ad,#3b5383)}
-/* 總房間表＝牌庫 */
-body.card .floor{border-top:0}
-body.card .floor .fl{font-family:"Cinzel",serif;font-weight:700;font-size:20px}
-body.card .grid{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:9px}
-body.card .plate{border-radius:8px;min-height:88px;padding:18px 4px 0;justify-content:space-between;overflow:hidden;color:var(--faint)}
-body.card .plate .no{font-family:"Cinzel",serif;font-weight:700;font-size:22px}
-body.card .plate .kd{align-self:stretch;margin:6px 0 0;padding:3px 0 4px;font-size:11px;font-weight:700;background:var(--card2);border-top:1px solid var(--frame2)}
-body.card .plate:not([class*=" k-"]){opacity:.62;filter:saturate(.6)}
-body.card .plate.k-退入{border-color:var(--prio);color:var(--ink)}
-body.card .plate.k-退入 .kd{color:#fff3e6;background:linear-gradient(180deg,var(--ribbon2),var(--ribbon))}
-body.card .plate.k-退房,body.card .plate.k-續住.s-todo{color:var(--ink)}
-body.card .plate.k-退房 .kd,body.card .plate.k-續住.s-todo .kd{color:var(--on);background:linear-gradient(180deg,var(--gold2),var(--gold))}
-body.card .plate.k-入住{border-color:var(--in);color:var(--ink)}
-body.card .plate.k-入住 .kd{color:#f0f5ff;background:linear-gradient(180deg,#5b78ad,#3b5383)}
-body.card .plate.k-續住:not(.s-todo) .kd{color:var(--done)}
-/* 今日狀況＝羊皮紙告示 */
-body.card .quest{border-color:var(--frame);background:linear-gradient(180deg,rgba(230,200,140,.10),rgba(230,200,140,.02)),linear-gradient(165deg,var(--card1),var(--card2))}
-body.card .quest .qh{font-family:var(--tc)}
-body.card .quest .qh::before{content:"📜 "}
-/* 按鈕、標籤 */
-body.card .btn{border-radius:6px;background:linear-gradient(180deg,var(--gold2),var(--gold));border-color:var(--frame);color:var(--on);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 0 rgba(0,0,0,.3)}
-body.card .btn.ghost{background:none;color:var(--ink);border-color:var(--frame2);box-shadow:none}
-body.card .chip{border-radius:6px;border-color:var(--frame2)}
-body.card .chip[aria-pressed=true]{background:linear-gradient(180deg,var(--gold2),var(--gold));border-color:var(--frame);color:var(--on)}
-body.card .addbtn{border-radius:8px;border-color:var(--frame);font-family:var(--tc);font-weight:700}
+/* 共用：卡片是單一細框＋四角小記號（桌遊卡牌的感覺，但不搶眼） */
+body.card .plate,body.card .stat,body.card .logi,body.card .acc,body.card .rvi,body.card .bfg,body.card .tally,body.card .doc,body.card .list,body.card .bars,body.card details.tools,body.card .notice,body.card .pi,body.card .rtable,body.card .bfmini,body.card .datepill,body.card .quest,body.card .trow{
+  border:1px solid var(--frame);background:var(--card);box-shadow:none;border-radius:8px}
+body.card .trow,body.card .plate,body.card .stat,body.card .acc{
+  background:
+    linear-gradient(var(--gold),var(--gold)) 5px 5px/6px 1px no-repeat,linear-gradient(var(--gold),var(--gold)) 5px 5px/1px 6px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) calc(100% - 5px) calc(100% - 5px)/6px 1px no-repeat,linear-gradient(var(--gold),var(--gold)) calc(100% - 5px) calc(100% - 5px)/1px 6px no-repeat,
+    var(--card)}
+body.card h2{font-family:var(--tc);font-weight:700;font-size:14px;letter-spacing:.28em;color:var(--gold)}
+body.card h2::before{content:"";width:7px;height:7px;flex:none;transform:rotate(45deg);border:1px solid var(--gold)}
+body.card .brand{font-family:"Cinzel",serif;font-weight:700;letter-spacing:.24em}
+body.card .props button{font-family:var(--tc);position:relative;border:0}
+body.card .props button[aria-pressed=true]{color:var(--ink);border:0}
+body.card .props button[aria-pressed=true]::after{content:"";position:absolute;left:50%;bottom:-3px;width:6px;height:6px;margin-left:-3px;transform:rotate(45deg);background:var(--gold)}
+body.card nav.tabs{border-top:1px solid var(--frame)}
+body.card nav.tabs button[aria-current=page]::before{content:"";position:absolute;top:-4px;left:50%;width:7px;height:7px;margin-left:-3.5px;transform:rotate(45deg);background:var(--gold)}
+body.card .btn{border-radius:6px}
+body.card .chip{border-radius:6px}
+body.card .addbtn{border-radius:8px}
 body.card .stat b{font-family:"Cinzel",serif;font-weight:700}
-/* 彈出面板＝羊皮紙卷 */
-body.card .sheet{border-top:2px solid var(--frame);border-radius:14px 14px 0 0;background:linear-gradient(180deg,var(--panel2),var(--panel) 120px);box-shadow:0 -10px 30px rgba(0,0,0,.4)}
+body.card .sheet{border-radius:14px 14px 0 0;border-top:1px solid var(--frame)}
 body.card .sheet h3{font-family:"Cinzel",serif;font-weight:700}
 body.card .sheet h3.t{font-family:var(--tc)}
-body.card .acc.d-over,body.card .acc.d-due{border-color:var(--prio)}body.card .acc.d-soon{border-color:var(--gold2)}body.card .acc.d-ok{border-color:var(--done)}
-body.card .rvi.neg{border-color:var(--prio)}
+body.card .dayrow{margin:16px 0 10px}
+body.card .dayrow .date{font-family:"Cinzel",serif;font-weight:700}
+body.card .datepill{border-radius:8px}
+body.card .notice{padding:8px 14px;max-width:none}
+body.card .notice .ic{width:22px;height:22px;font-size:12px;border-radius:5px}
+body.card .notice .ic{font-family:var(--sans);font-weight:700}
+
+/* 今日：上方資源列（像遊戲 HUD） */
+body.card .hero{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px;margin:6px 0 4px;text-align:left}
+body.card .hero .hb,body.card .hero .sub span{border:1px solid var(--frame);border-radius:8px;background:var(--card);padding:10px 12px 9px;display:flex;flex-direction:column;justify-content:flex-end;gap:2px}
+body.card .hero .hb{border-color:var(--gold)}
+body.card .hero .n{font-family:"Cinzel",serif;font-weight:700;font-size:40px;line-height:1;color:var(--gold2)}
+body.card .hero .u{font-family:var(--tc);font-size:12px;letter-spacing:.2em;color:var(--mute);margin:0}
+body.card .hero .sub{display:contents}
+body.card .hero .sub span{font-size:12px;letter-spacing:.12em;color:var(--mute)}
+body.card .hero .sub b{font-family:"Cinzel",serif;font-weight:700;font-size:28px;line-height:1.05;color:var(--ink);margin:0;order:-1}
+body.card .hero .sub span{flex-direction:column}
+body.card .hero .sub .p b{color:var(--prio)}
+body.card .hero .zero{grid-column:1/-1;text-align:center;border:1px dashed var(--frame);border-radius:8px}
+
+/* 今日要掃：每層一排卡牌，類型只用小寶石＋文字，優先是上緣一條紅線 */
+body.card .fgroup{border-top:0;padding:10px 0 2px;flex-direction:column;gap:7px}
+body.card .fgroup .fl{width:auto;font-family:"Cinzel",serif;font-weight:700;font-size:13px;letter-spacing:.25em;color:var(--mute);display:flex;align-items:center;gap:10px;line-height:1}
+body.card .fgroup .fl::after{content:"";flex:1;height:1px;background:var(--line2)}
+body.card .fgroup ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+body.card .trow{position:relative;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:92px;padding:16px 4px 10px;transition:transform .12s,border-color .12s}
+body.card .trow:hover{border-color:var(--gold)}
+body.card .trow:active{transform:translateY(1px)}
+body.card .trow .no{width:auto;font-family:"Cinzel",serif;font-weight:700;font-size:28px;line-height:1;color:var(--ink);text-align:center}
+body.card .trow .kd{font-family:var(--tc);font-size:12px;letter-spacing:.06em;color:var(--mute);white-space:nowrap;display:flex;align-items:center;gap:5px}
+body.card .trow .kd::before{content:"";width:6px;height:6px;transform:rotate(45deg);background:var(--gold);flex:none}
+body.card .trow.k-退入 .kd{color:var(--prio)}
+body.card .trow.k-退入 .kd::before{background:var(--prio)}
+body.card .trow.k-續住 .kd{color:var(--ink)}
+body.card .trow.k-續住 .kd::before{background:var(--in)}
+body.card .trow.k-退入{border-top:3px solid var(--prio);padding-top:14px}
+body.card .trow .pri{display:none}
+body.card .trow .ex{position:absolute;top:5px;right:7px;margin:0;font-size:11px;color:var(--mute)}
+
+/* 總房間表：小卡，狀態只看底部細色條 */
+body.card .floor{border-top:0;padding:8px 0}
+body.card .floor .fl{font-family:"Cinzel",serif;font-weight:700;font-size:15px;color:var(--mute)}
+body.card .grid{grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:7px}
+body.card .plate{min-height:66px;color:var(--ink);overflow:hidden;padding:8px 4px 9px}
+body.card .plate .no{font-family:"Cinzel",serif;font-weight:700;font-size:20px}
+body.card .plate .kd{font-size:10.5px;color:var(--mute)}
+body.card .plate::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
+body.card .plate.k-退入::after{background:var(--prio)}
+body.card .plate.k-退房::after,body.card .plate.k-續住.s-todo::after{background:var(--gold)}
+body.card .plate.k-入住::after{background:var(--in)}
+body.card .plate.k-退入 .kd{color:var(--prio)}
+body.card .plate.k-入住 .kd{color:var(--in)}
+body.card .plate:not([class*=" k-"]){color:var(--faint);border-style:dashed;background:transparent}
+body.card .plate.k-續住:not(.s-todo){color:var(--mute)}
+
+/* 今日狀況：安靜的告示板，只有要注意的事變紅 */
+body.card .quest{margin-top:18px;padding:12px 12px 6px;background:var(--card)}
+body.card .quest::before,body.card .quest::after{display:none}
+body.card .quest .qh{position:static;transform:none;background:none;padding:0 0 6px;text-align:left;font-size:13px;letter-spacing:.25em;color:var(--gold)}
+body.card .quest .qh b{background:none;color:var(--mute);border:1px solid var(--frame);font-size:12px;line-height:18px}
+body.card .qc .qno{border:1px solid var(--frame);border-radius:6px;box-shadow:none;background:transparent;width:50px;height:42px}
+body.card .qc .qno b{font-family:"Cinzel",serif;color:var(--ink);font-size:18px}
+body.card .qc.k-退入 .qno{border-color:var(--frame)}
+body.card .qc.k-退入 .qno b{color:var(--ink)}
+body.card .qo .ic{background:none;border:0;width:20px}
+body.card .qbang{animation:none;width:9px;height:9px;box-shadow:none;background:var(--prio)}
+body.card .qbang span{display:none}
+
+/* 電腦（寬螢幕）：左邊是牌桌，右邊是日期、提醒、今日狀況 */
+@media (min-width:980px){
+  body.card .wrap:has(#p-today.on){max-width:1120px}
+  body.card:has(#p-today.on) header .in{max-width:1120px}
+  body.card #p-today.on{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:auto auto auto auto 1fr;column-gap:28px;align-items:start;
+    grid-template-areas:"c d" "t g" "t n" "t q" "f q"}
+  body.card #p-today > .dayrow{grid-area:d;justify-content:flex-start}
+  body.card #p-today > .gotoday{grid-area:g}
+  body.card #p-today > .notice{grid-area:n;margin:0 0 4px}
+
+  body.card #p-today > #counts{grid-area:c;margin-top:16px}
+  body.card #p-today > #todoList{grid-area:t}
+  body.card #p-today > #quests{grid-area:q;position:sticky;top:76px}
+  body.card #p-today > .tfloors{grid-area:f}
+  body.card #p-today > #quests .quest{margin-top:8px}
+}
 /* 畫面風格選擇 */
 .stylepick{margin:34px 0 10px;text-align:center}
 .stylepick .chips{justify-content:center}
@@ -459,13 +475,14 @@ body.card .rvi.neg{border-color:var(--prio)}
         <span class="date" id="dDate"></span><span class="wk" id="dWk"></span></div>
       <button class="arr" id="nextDay" aria-label="後一天">›</button>
     </div>
-    <div style="text-align:center;margin:-6px 0 12px"><button class="today" id="goToday" hidden>回到今天</button></div>
+    <div class="gotoday" style="text-align:center;margin:-6px 0 12px"><button class="today" id="goToday" hidden>回到今天</button></div>
     <div class="notice"><span class="ic">!</span><div><b>AI 可能會出錯</b><span>出入房間請優先敲門</span></div></div>
 
     <div class="hero" id="counts"></div>
     <div id="todoList"></div>
     <div id="quests"></div>
 
+    <div class="tfloors">
     <h2>總房間表</h2>
     <details class="tools" id="toolsBox">
       <summary>標記房況</summary>
@@ -474,6 +491,7 @@ body.card .rvi.neg{border-color:var(--prio)}
     </details>
     <div id="floors"></div>
     <div class="legend"><span><i class="dot" style="background:var(--prio)"></i>退房→入住（優先）</span><span><i class="dot" style="background:var(--gold)"></i>退房、續住要掃</span><span><i class="dot" style="background:var(--in)"></i>入住</span></div>
+    </div>
   </section>
 
   <!-- 紀錄 -->
@@ -782,8 +800,8 @@ function renderToday(flashRooms = []) {
   const list = rooms.filter((r) => R[r] && (R[r].status === 'todo' || R[r].status === 'done') && R[r].kind && R[r].kind !== '入住');
   const prio = list.filter((r) => R[r].kind === '退入').length;
   $('#counts').innerHTML = list.length
-    ? `<div class="n">${list.length}</div><div class="u">間要掃</div>
-       <div class="sub">${prio ? `<span class="p"><b>${prio}</b>間優先</span>` : ''}${inn ? `<span><b>${inn}</b>間今晚入住</span>` : ''}</div>`
+    ? `<div class="hb"><div class="n">${list.length}</div><div class="u">間要掃</div></div>
+       <div class="sub">${prio || document.body.classList.contains('card') ? `<span class="p"><b>${prio}</b>間優先</span>` : ''}${inn || document.body.classList.contains('card') ? `<span><b>${inn}</b>間今晚入住</span>` : ''}</div>`
     : `<div class="zero">今天沒有要掃的房間</div>`;
   const byFl = {};
   for (const r of list) (byFl[floorOf(r)] ||= []).push(r);
@@ -1875,7 +1893,7 @@ function renderStylePick() {
   const el = $('#stylePick'); if (!el) return;
   const v = ls.get('eroom.style', 'card');
   el.innerHTML = `<h2>畫面風格</h2><div class="chips">${[['card', '⚔ 卡牌'], ['plain', '簡約']].map(([k, t]) => `<button class="chip" data-style="${k}" aria-pressed="${v === k}">${t}</button>`).join('')}</div><p class="muted small">只改這支手機／電腦的顯示，不影響別人。</p>`;
-  el.querySelectorAll('[data-style]').forEach((b) => (b.onclick = () => { ls.set('eroom.style', b.dataset.style); applyStyle(); }));
+  el.querySelectorAll('[data-style]').forEach((b) => (b.onclick = () => { ls.set('eroom.style', b.dataset.style); applyStyle(); renderAll(); }));
 }
 applyStyle();
 // ---------- 啟動 ----------
