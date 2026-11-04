@@ -390,16 +390,21 @@ export async function onRequest(ctx) {
       const cfgs = {};
       for (const pp of ps) { const c = await env.DB.prepare('SELECT data FROM config WHERE prop=?').bind(pp).first(); cfgs[pp] = c ? JSON.parse(c.data).rooms || [] : []; }
       const map = {};
-      for (const r of results) { if (!ps.includes(r.prop)) continue; const x = JSON.parse(r.data); if (!x.kind) continue; ((map[r.date] ||= {})[r.prop] ||= []).push([r.room, x]); }
+      for (const r of results) { if (!ps.includes(r.prop)) continue; const x = JSON.parse(r.data); if (!x.kind && !x.note && !x.lateOut && !x.earlyIn) continue; ((map[r.date] ||= {})[r.prop] ||= []).push([r.room, x]); }
+      const only = url.searchParams.get('only');  // only=notes：只看備註（今日狀況）
+      const noteOf = (x) => [x.lateOut && '加時 ' + x.lateOut, x.earlyIn && '提早入住 ' + x.earlyIn, x.note].filter(Boolean).join('，');
       const out = [`E·ROOM 房況 ${from} ～ ${to}（${ps.map((x) => PNAME[x]).join('、')}）`, ''];
       for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z'); t += 864e5) {
         const d = new Date(t).toISOString().slice(0, 10);
         for (const pp of ps) {
           const rows = (map[d]?.[pp] || []).sort((a, b) => cfgs[pp].indexOf(a[0]) - cfgs[pp].indexOf(b[0]));
           const name = PNAME[pp];
+          const notes = rows.filter(([, x]) => noteOf(x)).map(([r, x]) => `  ${r} ${noteOf(x)}`);
+          if (only === 'notes') { out.push(`${d} ${name} 今日狀況：${notes.length ? '' : '沒有備註'}`, ...notes); continue; }
           if (!rows.length) { out.push(`${d} ${name}：沒有登記`); continue; }
           const need = rows.filter(([, x]) => x.status === 'todo' || x.status === 'done').length;
-          out.push(`${d} ${name}：要掃 ${need} 間｜` + rows.map(([r, x]) => `${r} ${LBL[x.kind] || x.kind}${x.kind === '續住' ? (x.status ? '要掃' : '不用掃') : ''}${x.note ? `（${x.note}）` : ''}`).join('、'));
+          out.push(`${d} ${name}：要掃 ${need} 間｜` + rows.filter(([, x]) => x.kind).map(([r, x]) => `${r} ${LBL[x.kind] || x.kind}${x.kind === '續住' ? (x.status ? '要掃' : '不用掃') : ''}`).join('、'));
+          if (notes.length) out.push(`${d} ${name} 今日狀況：`, ...notes);
         }
       }
       return new Response(out.join('\n'), { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });

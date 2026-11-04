@@ -27,3 +27,7 @@
 `records.data`：`kind`（退房／退入／續住／入住）、`status`（todo 要掃／done 掃好了／空字串 不用掃）、`note`、`lateOut`、`earlyIn`、`checks`、`doneAt`、`updatedAt`
 
 網頁可直接開指定館別與日期：`/?p=ersu&d=2026-10-15`
+
+- `GET /api/text?p=ersu&d=2026-11-04`：純文字房況，每天後面附「今日狀況」（備註、加時、提早入住）
+- `GET /api/text?only=notes&d=2026-11-04`：只看備註；可加 `p=` 指定館、`from=&to=` 查區間（最多 93 天）
+- `GET /api/records?p=ersu&d=2026-11-04`：JSON，每間的 note、lateOut、earlyIn
