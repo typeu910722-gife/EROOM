@@ -304,6 +304,15 @@ textarea{min-height:90px;resize:vertical;line-height:1.65}
 @keyframes qp{50%{transform:rotate(45deg) translateY(-2px)}}
 @media (prefers-reduced-motion:reduce){.qbang{animation:none}}
 .nchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.nchips button{border:1px dashed var(--gold);background:none;color:var(--gold);border-radius:999px;padding:3px 11px;font-size:13px}
+.plate .flt{position:absolute;top:2px;left:4px;font-size:10.5px;line-height:1.2;color:var(--prio)}
+.fltlist{display:flex;flex-direction:column;gap:6px}
+.fltrow{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px 10px 8px 12px}
+.fltrow .no{flex:none;min-width:46px;font-family:var(--serif);font-weight:700;font-size:20px;color:var(--ink)}
+.fltrow .bd{flex:1;min-width:0;font-size:14.5px;line-height:1.45}.fltrow .bd small{display:block;font-size:12px;color:var(--mute)}
+.fltrow .fix{flex:none;border:1px solid var(--done);color:var(--done);background:none;border-radius:999px;padding:4px 12px;font-size:13px;white-space:nowrap}
+.fltadd{display:flex;gap:6px;margin-top:8px}.fltadd input{flex:1;min-width:0}.fltadd select{width:auto}
+body.card .fltrow{border-color:var(--frame);background:var(--card);border-radius:8px;border-left:3px solid var(--prio)}
+body.card .fltrow .fix{border-radius:6px}
 .bfwrap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;height:calc(100vh - 230px);min-height:420px}
 .bfwrap iframe{width:100%;height:100%;border:0}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 8px 8px 18px;z-index:60;display:none;align-items:center;gap:10px;font-size:14px;max-width:92vw}
@@ -491,6 +500,7 @@ body.card .qbang span{display:none}
     </details>
     <div id="floors"></div>
     <div class="legend"><span><i class="dot" style="background:var(--prio)"></i>退房→入住（優先）</span><span><i class="dot" style="background:var(--gold)"></i>退房、續住要掃</span><span><i class="dot" style="background:var(--in)"></i>入住</span></div>
+    <div id="faults"></div>
     </div>
   </section>
 
@@ -813,6 +823,7 @@ function renderToday(flashRooms = []) {
     }).join('')}</ul></div>`).join('');
 
   renderQuests(rooms, R);
+  renderFaults();
 
   // 總房間表
   const fl = {};
@@ -845,6 +856,60 @@ function renderQuests(rooms, R) {
       ${urgent ? '<span class="qbang" title="優先"><span>!</span></span>' : ''}</button>`;
   }).join('')}</div>`;
 }
+// ---------- 故障（總房間表登記，修好了就刪）----------
+S.faults = {};
+const faultsOf = (r) => (S.faults[S.prop] || []).filter((f) => f.room === r);
+let faultLoading = '';
+async function loadFaults(force) {
+  const p = S.prop;
+  if (p === 'erlu' || (!force && S.faults[p]) || faultLoading === p) return;
+  faultLoading = p;
+  try { const j = await api(`logs?p=${p}&cat=${encodeURIComponent('故障')}`); S.faults[p] = j.logs || []; } catch { S.faults[p] = S.faults[p] || []; }
+  faultLoading = '';
+  if (S.prop === p && S.tab === 'today') renderAll();
+}
+function renderFaults() {
+  const el = $('#faults'); if (!el) return;
+  if (S.prop === 'erlu') { el.innerHTML = ''; return; }
+  if (!S.faults[S.prop]) { loadFaults(); return; }
+  const rooms = S.rooms[S.prop] || [];
+  const list = [...S.faults[S.prop]].sort((a, b) => rooms.indexOf(a.room) - rooms.indexOf(b.room) || b.date.localeCompare(a.date));
+  const keep = { r: $('#fltRoom')?.value || '', t: $('#fltText')?.value || '', f: document.activeElement && document.activeElement.id === 'fltText' };
+  el.innerHTML = `<h2>故障中${list.length ? `（${list.length}）` : ''}</h2>
+    ${list.length ? `<div class="fltlist">${list.map((f) => fltRow(f)).join('')}</div>` : '<p class="muted small">目前沒有登記故障。</p>'}
+    <div class="fltadd"><select id="fltRoom" aria-label="房號"><option value="">房號</option>${rooms.map((r) => `<option>${esc(r)}</option>`).join('')}<option>公共</option></select>
+      <input type="text" id="fltText" placeholder="哪裡壞了，例如：浴室燈不亮" maxlength="200"><button class="btn" id="fltAdd">登記</button></div>`;
+  $('#fltRoom').value = keep.r; $('#fltText').value = keep.t; if (keep.f) $('#fltText').focus();
+  $('#fltAdd').onclick = () => addFault($('#fltRoom').value, $('#fltText').value, () => { $('#fltText').value = ''; });
+  $('#fltText').onkeydown = (e) => { if (e.key === 'Enter') $('#fltAdd').click(); };
+}
+const fltRow = (f, noRoom) => `<div class="fltrow">${noRoom ? '' : `<span class="no">${esc(f.room)}</span>`}<span class="bd">${esc(f.content || '（沒寫內容）')}<small>${mdShort(f.date)}${f.by ? '・' + esc(f.by) : ''}${f.source === 'line' ? '・LINE' : ''}</small></span><button class="fix" data-fltdel="${f.id}">修好了</button></div>`;
+async function addFault(room, text, done) {
+  room = String(room || '').trim(); text = String(text || '').trim();
+  if (!room) return toast('請選房號', false, true);
+  if (!text) return toast('請寫哪裡壞了', false, true);
+  try {
+    await api('logs', { method: 'POST', body: JSON.stringify({ p: S.prop, room, cat: '故障', date: todayStr(), content: text, by: S.me || '' }) });
+    toast(`${room} 已登記故障`); done && done();
+    await loadFaults(true); fillRoomFaults(room);
+  } catch (e) { toast(e.message, false, true); }
+}
+function fillRoomFaults(room) {
+  const el = $('#rmFaults'); if (!el || S.prop === 'erlu') return;
+  const list = faultsOf(room);
+  el.innerHTML = `<div class="lbl">故障${list.length ? `（${list.length}）` : ''}</div>
+    ${list.length ? `<div class="fltlist">${list.map((f) => fltRow(f, true)).join('')}</div>` : ''}
+    <div class="fltadd"><input type="text" id="rmFltText" placeholder="登記故障，例如：冷氣滴水" maxlength="200"><button class="btn" id="rmFltAdd">登記</button></div>`;
+  $('#rmFltAdd').onclick = () => addFault(room, $('#rmFltText').value);
+  $('#rmFltText').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#rmFltAdd').click(); } };
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-fltdel]'); if (!b) return;
+  e.stopPropagation();
+  const f = (S.faults[S.prop] || []).find((x) => x.id === +b.dataset.fltdel);
+  if (!confirm(`${f ? f.room + '「' + (f.content || '') + '」' : '這筆故障'}修好了？會從清單刪掉。`)) return;
+  try { await api('logs?id=' + b.dataset.fltdel, { method: 'DELETE' }); toast('已刪除'); await loadFaults(true); if (f) fillRoomFaults(f.room); } catch (er) { toast(er.message, false, true); }
+}, true);
 function plate(r, x, flash) {
   x = x || {};
   const cls = ['plate', x.kind ? 'k-' + x.kind : '', x.status ? 's-' + x.status : '', flash ? 'flash' : ''].join(' ');
@@ -853,7 +918,7 @@ function plate(r, x, flash) {
   return `<button class="${cls}" data-room="${esc(r)}" aria-label="${esc(r)} ${esc(kindText(x) || '空房')}">
     ${x.kind ? '<span class="tag"></span>' : ''}<span class="no">${esc(r)}</span>
     <span class="kd">${esc(x.kind ? ({ '退入': '退→入', '續住': x.status === 'todo' ? '續住掃' : '續住' }[x.kind] || KINDS[x.kind]?.label || x.kind) : '')}</span>
-    ${mini ? `<span class="mini">${esc(mini)}</span>` : ''}</button>`;
+    ${mini ? `<span class="mini">${esc(mini)}</span>` : ''}${faultsOf(r).length ? `<span class="flt" title="故障 ${faultsOf(r).length} 件">🔧${faultsOf(r).length > 1 ? faultsOf(r).length : ''}</span>` : ''}</button>`;
 }
 
 function renderTools() {
@@ -889,7 +954,9 @@ function openRoom(room) {
       <div class="lbl">備註（會出現在「今日狀況」和 LINE 訊息）</div>
       <div class="nchips">${['勿擾', '加床', '租機車', '倒垃圾', '生日佈置', '缺備品', '故障', '遺留物'].map((t) => `<button type="button" data-nadd="${t}">${qIcon(t)} ${t}</button>`).join('')}</div>
       <textarea id="fNote" placeholder="例如：浴室燈不亮；2 點後倒垃圾（多件用；分開）">${esc(x.note || '')}</textarea>
-      <div class="btnrow"><button class="btn ghost" id="sClose">取消</button><button class="btn wide" id="sSave">儲存</button></div>`;
+      <div class="btnrow"><button class="btn ghost" id="sClose">取消</button><button class="btn wide" id="sSave">儲存</button></div>
+      <div id="rmFaults"></div>`;
+    fillRoomFaults(room);
   };
   draw();
   const body = $('#sheetBody');

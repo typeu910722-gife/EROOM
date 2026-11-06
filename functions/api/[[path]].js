@@ -807,7 +807,7 @@ async function line(sub, m, request, env, url, ctx) {
 
 // ======================= 維護／房況紀錄 =======================
 // logs(id, prop, room, date, cat, content, by, source, line_msg, deleted, created_at, updated_at)
-const LOG_CATS = ['冷氣清洗', '冷氣維修', '維修', '房況', '其他'];
+const LOG_CATS = ['冷氣清洗', '冷氣維修', '維修', '房況', '其他', '故障'];  // 故障：總房間表登記，修好就刪
 const ERLU_CATS = ['清理', '故障'];
 const catsFor = (p) => (p === 'erlu' ? ERLU_CATS : LOG_CATS);
 function guessCatFor(p, t) {
